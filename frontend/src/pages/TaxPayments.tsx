@@ -1,11 +1,7 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { taxPaymentApi } from '@/services/taxPaymentApi'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
-import { TaxDashboardData, TAX_PAYMENT_TYPE_LABELS } from '@/types/taxPayment'
-import AddTaxPaymentModal from '@/components/AddTaxPaymentModal'
-import TaxPaymentUploadModal from '@/components/TaxPaymentUploadModal'
+import { useMockTaxPaymentsData, PaymentType, PAYMENT_TYPE_LABELS } from '@/hooks/useMockTaxPaymentsData'
 import { 
   CurrencyDollarIcon,
   CalendarDaysIcon,
@@ -15,7 +11,9 @@ import {
   CloudArrowUpIcon,
   ChartBarIcon,
   UsersIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline'
 
 export default function TaxPayments() {
@@ -24,19 +22,38 @@ export default function TaxPayments() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedTaxYear, setSelectedTaxYear] = useState(new Date().getFullYear())
+  const [selectedQuarter, setSelectedQuarter] = useState<'q1' | 'q2' | 'q3' | 'q4' | 'all'>('all')
+  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType | 'all'>('all')
 
-  const { data: dashboardData, isLoading, error } = useQuery<TaxDashboardData>({
-    queryKey: ['tax-dashboard', currentFiscalYear],
-    queryFn: () => taxPaymentApi.getTaxDashboard(currentFiscalYear)
-  })
+  const { data, isLoading, error } = useMockTaxPaymentsData()
 
   const handleExport = async () => {
     try {
-      const blob = await taxPaymentApi.exportTaxPayments(currentFiscalYear, selectedTaxYear)
+      // Create CSV content
+      const headers = ['Member Name', 'Payment Type', 'K-1 Income', 'Q1', 'Q2', 'Q3', 'Q4', 'Total Due', 'Total Paid', 'Outstanding']
+      const rows = filteredPayments.map(payment => [
+        payment.memberName,
+        PAYMENT_TYPE_LABELS[payment.paymentType],
+        payment.k1Income,
+        payment.quarterlyPayments.q1.amount.toFixed(2),
+        payment.quarterlyPayments.q2.amount.toFixed(2),
+        payment.quarterlyPayments.q3.amount.toFixed(2),
+        payment.quarterlyPayments.q4.amount.toFixed(2),
+        payment.totalDue.toFixed(2),
+        payment.totalPaid.toFixed(2),
+        (payment.totalDue - payment.totalPaid).toFixed(2)
+      ])
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `tax-payments-fy${currentFiscalYear}-ty${selectedTaxYear}.xlsx`
+      a.download = `tax-payments-fy${currentFiscalYear}-ty${selectedTaxYear}.csv`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -47,10 +64,41 @@ export default function TaxPayments() {
     }
   }
 
-  const totalPayments = (dashboardData?.totalCompanyPayments || 0) + (dashboardData?.totalMemberPayments || 0)
-  const avgMemberPayment = dashboardData?.memberSummaries?.length 
-    ? dashboardData.totalMemberPayments / dashboardData.memberSummaries.length 
-    : 0
+  const getStatusColor = (status: 'pending' | 'paid' | 'overdue') => {
+    switch (status) {
+      case 'paid':
+        return 'text-green-600 bg-green-50 border-green-200'
+      case 'overdue':
+        return 'text-red-600 bg-red-50 border-red-200'
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    }
+  }
+
+  const getStatusIcon = (status: 'pending' | 'paid' | 'overdue') => {
+    switch (status) {
+      case 'paid':
+        return <CheckCircleIcon className="h-4 w-4" />
+      case 'overdue':
+        return <XCircleIcon className="h-4 w-4" />
+      case 'pending':
+        return <ClockIcon className="h-4 w-4" />
+    }
+  }
+
+  const filteredPayments = data?.taxPayments.filter(payment => {
+    // Filter by payment type
+    if (selectedPaymentType !== 'all' && payment.paymentType !== selectedPaymentType) {
+      return false
+    }
+    
+    // Filter by quarter status
+    if (selectedQuarter !== 'all') {
+      return payment.quarterlyPayments[selectedQuarter].status !== 'paid'
+    }
+    
+    return true
+  }) || []
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -62,7 +110,7 @@ export default function TaxPayments() {
             <div className="sm:flex-auto">
               <h1 className="text-3xl font-bold text-white">Tax Payments</h1>
               <p className="mt-2 text-emerald-100">
-                Track tax payments made on behalf of members for FY {currentFiscalYear}
+                Track quarterly estimated tax payments for members in FY {currentFiscalYear}
               </p>
             </div>
             <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
@@ -92,25 +140,60 @@ export default function TaxPayments() {
         </div>
       </div>
 
-      {/* Tax Year Selector */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Tax Year
-        </label>
-        <select
-          value={selectedTaxYear}
-          onChange={(e) => setSelectedTaxYear(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        >
-          {Array.from({ length: 5 }, (_, i) => {
-            const year = new Date().getFullYear() - i
-            return (
-              <option key={year} value={year}>
-                Tax Year {year}
-              </option>
-            )
-          })}
-        </select>
+      {/* Filters */}
+      <div className="mb-6 flex space-x-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tax Year
+          </label>
+          <select
+            value={selectedTaxYear}
+            onChange={(e) => setSelectedTaxYear(Number(e.target.value))}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >
+            {Array.from({ length: 5 }, (_, i) => {
+              const year = new Date().getFullYear() - i
+              return (
+                <option key={year} value={year}>
+                  Tax Year {year}
+                </option>
+              )
+            })}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Payment Type
+          </label>
+          <select
+            value={selectedPaymentType}
+            onChange={(e) => setSelectedPaymentType(e.target.value as any)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >
+            <option value="all">All Types</option>
+            {Object.entries(PAYMENT_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Quarter Filter
+          </label>
+          <select
+            value={selectedQuarter}
+            onChange={(e) => setSelectedQuarter(e.target.value as any)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >
+            <option value="all">All Quarters</option>
+            <option value="q1">Q1 - April 15</option>
+            <option value="q2">Q2 - June 15</option>
+            <option value="q3">Q3 - September 15</option>
+            <option value="q4">Q4 - January 15</option>
+          </select>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -125,45 +208,9 @@ export default function TaxPayments() {
               </div>
               <div className="ml-4 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Payments</dt>
-                  <dd className="text-2xl font-bold text-gray-900">${totalPayments.toLocaleString()}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-          <div className="p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <UsersIcon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="ml-4 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Average per Member</dt>
-                  <dd className="text-2xl font-bold text-gray-900">${avgMemberPayment.toLocaleString()}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-          <div className="p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <ChartBarIcon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="ml-4 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Payment Types</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Due</dt>
                   <dd className="text-2xl font-bold text-gray-900">
-                    {dashboardData?.paymentsByType ? Object.keys(dashboardData.paymentsByType).length : 0}
+                    ${data?.summary.totalDue.toLocaleString() || 0}
                   </dd>
                 </dl>
               </div>
@@ -175,15 +222,55 @@ export default function TaxPayments() {
           <div className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                  <ClockIcon className="h-6 w-6 text-white" />
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <CheckCircleIcon className="h-6 w-6 text-white" />
                 </div>
               </div>
               <div className="ml-4 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Upcoming</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Paid</dt>
                   <dd className="text-2xl font-bold text-gray-900">
-                    {dashboardData?.upcomingPayments?.length || 0}
+                    ${data?.summary.totalPaid.toLocaleString() || 0}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <ExclamationTriangleIcon className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div className="ml-4 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Outstanding</dt>
+                  <dd className="text-2xl font-bold text-gray-900">
+                    ${data?.summary.totalOutstanding.toLocaleString() || 0}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <ChartBarIcon className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div className="ml-4 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Compliance Rate</dt>
+                  <dd className="text-2xl font-bold text-gray-900">
+                    {data?.summary.complianceRate.toFixed(0) || 0}%
                   </dd>
                 </dl>
               </div>
@@ -199,153 +286,141 @@ export default function TaxPayments() {
         </div>
       ) : error ? (
         <div className="text-center py-12">
-          <p className="text-sm text-red-600">Failed to load tax payments: {(error as Error).message}</p>
+          <p className="text-sm text-red-600">Failed to load tax payments</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Member Summaries */}
-          <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Member Payment Summaries</h3>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {dashboardData?.memberSummaries?.map((summary) => (
-                <div key={summary.memberId} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">{summary.memberName}</h4>
-                      <p className="text-xs text-gray-500">Tax Year {summary.taxYear}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">
-                        ${summary.totalPayments.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {summary.lastPaymentDate ? 
-                          `Last: ${new Date(summary.lastPaymentDate).toLocaleDateString()}` : 
-                          'No payments'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Quarterly breakdown */}
-                  <div className="mt-2 grid grid-cols-4 gap-2">
-                    {Object.entries(summary.paymentsByQuarter).map(([quarter, amount]) => (
-                      <div key={quarter} className="text-center">
-                        <p className="text-xs text-gray-500">{quarter}</p>
-                        <p className="text-xs font-medium text-gray-900">
-                          ${amount.toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Member Tax Payments</h3>
           </div>
-
-          {/* Payment Types Breakdown */}
-          <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Payment Types</h3>
-            </div>
-            <div className="p-6">
-              {dashboardData?.paymentsByType && Object.entries(dashboardData.paymentsByType).map(([type, amount]) => (
-                <div key={type} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                  <span className="text-sm text-gray-700">
-                    {TAX_PAYMENT_TYPE_LABELS[type as keyof typeof TAX_PAYMENT_TYPE_LABELS] || type}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    ${amount.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Payments */}
-          <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Recent Payments</h3>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {dashboardData?.recentPayments?.map((payment) => (
-                <div key={payment.id} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {TAX_PAYMENT_TYPE_LABELS[payment.paymentType]}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(payment.paymentDate).toLocaleDateString()}
-                        {payment.quarter && ` • Q${payment.quarter}`}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">
-                        ${payment.amount.toLocaleString()}
-                      </p>
-                      {payment.isEstimated && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          Estimated
-                        </span>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Member
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    K-1 Income
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Q1
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Q2
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Q3
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Q4
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Due
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Paid
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredPayments.map((payment) => (
+                  <tr key={payment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{payment.memberName}</div>
+                      {payment.notes && (
+                        <div className="text-xs text-gray-500">{payment.notes}</div>
                       )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Upcoming Payments */}
-          <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Upcoming Payments</h3>
-                {dashboardData?.upcomingPayments && dashboardData.upcomingPayments.length > 0 && (
-                  <ExclamationTriangleIcon className="h-5 w-5 text-orange-500" />
-                )}
-              </div>
-            </div>
-            <div className="p-6">
-              {dashboardData?.upcomingPayments && dashboardData.upcomingPayments.length > 0 ? (
-                dashboardData.upcomingPayments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {TAX_PAYMENT_TYPE_LABELS[payment.paymentType]}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Due: {new Date(payment.paymentDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-900">
-                      ${payment.amount.toLocaleString()}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  No upcoming payments scheduled
-                </p>
-              )}
-            </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        payment.paymentType === 'federal' ? 'bg-blue-100 text-blue-800' :
+                        payment.paymentType.startsWith('state_ca') ? 'bg-green-100 text-green-800' :
+                        payment.paymentType.startsWith('state_ny') ? 'bg-purple-100 text-purple-800' :
+                        payment.paymentType.startsWith('state_tx') ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {PAYMENT_TYPE_LABELS[payment.paymentType]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ${payment.k1Income.toLocaleString()}
+                    </td>
+                    {(['q1', 'q2', 'q3', 'q4'] as const).map(quarter => {
+                      const q = payment.quarterlyPayments[quarter]
+                      return (
+                        <td key={quarter} className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="flex flex-col items-center">
+                            <span className="text-sm text-gray-900">
+                              ${q.amount.toLocaleString()}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(q.status)}`}>
+                              {getStatusIcon(q.status)}
+                              <span className="ml-1">{q.status}</span>
+                            </span>
+                            {q.paidDate && (
+                              <span className="text-xs text-gray-500 mt-1">
+                                {new Date(q.paidDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      )
+                    })}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      ${payment.totalDue.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-green-600">
+                        ${payment.totalPaid.toLocaleString()}
+                      </div>
+                      {payment.totalDue > payment.totalPaid && (
+                        <div className="text-xs text-red-600">
+                          Outstanding: ${(payment.totalDue - payment.totalPaid).toLocaleString()}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Add Payment Modal */}
-      <AddTaxPaymentModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-      />
+      {/* Placeholder modals - you can implement these later */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Add Tax Payment</h3>
+            <p className="text-gray-600 mb-4">Tax payment form will be implemented here.</p>
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Upload Modal */}
-      <TaxPaymentUploadModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-      />
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Upload Tax Payments</h3>
+            <p className="text-gray-600 mb-4">Upload functionality will be implemented here.</p>
+            <button
+              onClick={() => setShowUploadModal(false)}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

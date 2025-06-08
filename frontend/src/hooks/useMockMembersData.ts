@@ -262,7 +262,7 @@ export function useMockMembersData(page: number = 1, limit: number = 10) {
     const paginatedMembers = mockMembers.slice(startIndex, endIndex)
 
     return {
-      members: paginatedMembers,
+      data: paginatedMembers,
       total: mockMembers.length,
       page,
       limit,

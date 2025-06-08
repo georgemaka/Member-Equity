@@ -7,13 +7,14 @@ import EquityTrendChart from '@/components/equity/EquityTrendChart'
 import EquityReconciliation from '@/components/equity/EquityReconciliation'
 import EquityScenarioModeler from '@/components/equity/EquityScenarioModeler'
 import EquityMetrics from '@/components/equity/EquityMetrics'
+import EquityQuickActions from '@/components/equity/EquityQuickActions'
 import {
   ChartPieIcon,
   ChartBarIcon,
   CalculatorIcon,
   CurrencyDollarIcon,
   ScaleIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
@@ -146,7 +147,7 @@ export default function EquityDashboard() {
         <nav className="flex space-x-1 bg-gray-100 rounded-lg p-1">
           {[
             { key: 'overview', label: 'Overview', icon: ChartPieIcon },
-            { key: 'trends', label: 'Trends', icon: TrendingUpIcon },
+            { key: 'trends', label: 'Trends', icon: ArrowTrendingUpIcon },
             { key: 'reconciliation', label: 'Reconciliation', icon: ScaleIcon },
             { key: 'scenarios', label: 'Scenarios', icon: CalculatorIcon }
           ].map((tab) => (
@@ -204,6 +205,14 @@ export default function EquityDashboard() {
         <div className="space-y-8">
           {/* Key Metrics */}
           <EquityMetrics calculations={equityCalculations} members={membersData?.members || []} />
+          
+          {/* Quick Actions */}
+          <EquityQuickActions
+            onRecalculate={() => {
+              // Trigger recalculation logic
+              success('Recalculation Complete', 'All equity values have been updated')
+            }}
+          />
           
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

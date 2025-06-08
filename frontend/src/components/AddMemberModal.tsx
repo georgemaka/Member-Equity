@@ -5,6 +5,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import FormField from '@/components/FormField'
 import { useFormValidation, memberValidationSchema, equityValidationSchema } from '@/utils/validation'
+import { useUniqueValidation } from '@/hooks/useUniqueValidation'
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -36,6 +37,8 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
     ...memberValidationSchema, 
     estimatedPercentage: equityValidationSchema.estimatedPercentage 
   }
+  
+  const uniqueValidation = useUniqueValidation()
   
   const {
     errors,
@@ -85,9 +88,42 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
     }
   }
 
+  const [uniqueErrors, setUniqueErrors] = useState<Record<string, string>>({})
+
+  const validateUniqueFields = (): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    
+    // Validate email uniqueness
+    const emailError = uniqueValidation.validateUniqueEmail(formData.email)
+    if (emailError) errors.email = emailError
+    
+    // Validate SSN uniqueness
+    if (formData.socialSecurityNumber) {
+      const ssnError = uniqueValidation.validateUniqueSSN(formData.socialSecurityNumber)
+      if (ssnError) errors.socialSecurityNumber = ssnError
+    }
+    
+    // Validate Tax ID uniqueness
+    if (formData.taxId) {
+      const taxIdError = uniqueValidation.validateUniqueTaxId(formData.taxId)
+      if (taxIdError) errors.taxId = taxIdError
+    }
+    
+    // Validate Employee ID uniqueness
+    if (formData.employeeId) {
+      const empIdError = uniqueValidation.validateUniqueEmployeeId(formData.employeeId)
+      if (empIdError) errors.employeeId = empIdError
+    }
+    
+    return errors
+  }
+
   const validateForm = (): boolean => {
-    const result = validateAll(formData)
-    return result.isValid
+    const schemaResult = validateAll(formData)
+    const uniqueErrors = validateUniqueFields()
+    setUniqueErrors(uniqueErrors)
+    
+    return schemaResult.isValid && Object.keys(uniqueErrors).length === 0
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -120,11 +156,23 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
     createMemberMutation.mutate(memberData)
   }
 
+  const getFieldErrorWithUnique = (fieldName: string): string => {
+    return uniqueErrors[fieldName] || getFieldError(fieldName)
+  }
+
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }))
+    
+    // Clear unique error for this field when user starts typing
+    if (uniqueErrors[name]) {
+      setUniqueErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }))
+    }
     
     // Validate field in real-time
     validateField(name, value)
@@ -154,6 +202,7 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
       estimatedPercentage: ''
     })
     clearErrors()
+    setUniqueErrors({})
   }
 
   const handleClose = () => {
@@ -213,7 +262,7 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
             value={formData.email}
             onChange={handleInputChange}
             onBlur={handleFieldBlur}
-            error={getFieldError('email')}
+            error={getFieldErrorWithUnique('email')}
             required={true}
             disabled={isSubmitting}
           />
@@ -285,14 +334,14 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
                   onChange={(e) => handleInputChange('socialSecurityNumber', e.target.value)}
                   placeholder="123-45-6789"
                   className={`mt-1 block w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
-                    errors.socialSecurityNumber
+                    getFieldErrorWithUnique('socialSecurityNumber')
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-sukut-500 focus:border-sukut-500'
                   }`}
                   disabled={isSubmitting}
                 />
-                {errors.socialSecurityNumber && (
-                  <p className="mt-1 text-sm text-red-600">{errors.socialSecurityNumber}</p>
+                {getFieldErrorWithUnique('socialSecurityNumber') && (
+                  <p className="mt-1 text-sm text-red-600">{getFieldErrorWithUnique('socialSecurityNumber')}</p>
                 )}
               </div>
 
@@ -308,14 +357,14 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
                   onChange={(e) => handleInputChange('taxId', e.target.value)}
                   placeholder="12-3456789"
                   className={`mt-1 block w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
-                    errors.taxId
+                    getFieldErrorWithUnique('taxId')
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-sukut-500 focus:border-sukut-500'
                   }`}
                   disabled={isSubmitting}
                 />
-                {errors.taxId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.taxId}</p>
+                {getFieldErrorWithUnique('taxId') && (
+                  <p className="mt-1 text-sm text-red-600">{getFieldErrorWithUnique('taxId')}</p>
                 )}
               </div>
 
@@ -331,14 +380,14 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
                   onChange={(e) => handleInputChange('employeeId', e.target.value)}
                   placeholder="EMP001"
                   className={`mt-1 block w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
-                    errors.employeeId
+                    getFieldErrorWithUnique('employeeId')
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-sukut-500 focus:border-sukut-500'
                   }`}
                   disabled={isSubmitting}
                 />
-                {errors.employeeId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.employeeId}</p>
+                {getFieldErrorWithUnique('employeeId') && (
+                  <p className="mt-1 text-sm text-red-600">{getFieldErrorWithUnique('employeeId')}</p>
                 )}
               </div>
             </div>
@@ -530,7 +579,7 @@ export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps)
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || hasErrors}
+              disabled={isSubmitting || hasErrors || Object.values(uniqueErrors).some(error => error !== '')}
               className="px-4 py-2 text-sm font-medium text-white bg-sukut-600 border border-transparent rounded-md hover:bg-sukut-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sukut-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

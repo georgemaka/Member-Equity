@@ -3,7 +3,7 @@ import {
   CurrencyDollarIcon,
   ChartBarIcon,
   UsersIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   ScaleIcon,
   ChartPieIcon
 } from '@heroicons/react/24/outline'
@@ -128,7 +128,7 @@ export default function EquityMetrics({ calculations, members }: EquityMetricsPr
           title="Top 10% Hold"
           value={`${calculations.equityConcentration.top10Percent.toFixed(1)}%`}
           subtitle="Equity concentration"
-          icon={TrendingUpIcon}
+          icon={ArrowTrendingUpIcon}
           color="orange"
         />
 

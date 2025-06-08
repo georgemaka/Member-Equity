@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useMockAuth } from '@/contexts/MockAuthContext'
 import FiscalYearSelector from './FiscalYearSelector'
+import RoleSwitcher from './RoleSwitcher'
+import PermissionGuard from './PermissionGuard'
 import { 
   HomeIcon, 
   UsersIcon, 
@@ -9,22 +11,78 @@ import {
   ChartPieIcon,
   CurrencyDollarIcon,
   CalculatorIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ClockIcon,
+  FolderIcon,
+  DocumentCheckIcon
 } from '@heroicons/react/24/outline'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: HomeIcon },
-  { name: 'Members', href: '/members', icon: UsersIcon },
-  { name: 'Equity', href: '/equity', icon: ChartPieIcon },
-  { name: 'Tax Payments', href: '/tax-payments', icon: CurrencyDollarIcon },
-  { name: 'Year-End Allocation', href: '/year-end-allocation', icon: CalculatorIcon },
-  { name: 'Distributions', href: '/distributions', icon: BanknotesIcon },
-  { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+  { 
+    name: 'Dashboard', 
+    href: '/', 
+    icon: HomeIcon,
+    permission: 'members:read' // Most basic permission
+  },
+  { 
+    name: 'Members', 
+    href: '/members', 
+    icon: UsersIcon,
+    resource: 'members'
+  },
+  { 
+    name: 'Equity', 
+    href: '/equity', 
+    icon: ChartPieIcon,
+    resource: 'equity'
+  },
+  { 
+    name: 'Tax Payments', 
+    href: '/tax-payments', 
+    icon: CurrencyDollarIcon,
+    resource: 'tax-payments'
+  },
+  { 
+    name: 'Year-End Allocation', 
+    href: '/year-end-allocation', 
+    icon: CalculatorIcon,
+    permission: 'equity:write'
+  },
+  { 
+    name: 'Distributions', 
+    href: '/distributions', 
+    icon: BanknotesIcon,
+    resource: 'distributions'
+  },
+  { 
+    name: 'Distribution Requests', 
+    href: '/distribution-requests', 
+    icon: DocumentCheckIcon,
+    resource: 'distributions'
+  },
+  { 
+    name: 'Analytics', 
+    href: '/analytics', 
+    icon: ChartBarIcon,
+    resource: 'analytics'
+  },
+  { 
+    name: 'Documents', 
+    href: '/documents', 
+    icon: FolderIcon,
+    permission: 'documents:read'
+  },
+  { 
+    name: 'Audit Trail', 
+    href: '/audit', 
+    icon: ClockIcon,
+    resource: 'audit'
+  },
 ]
 
 export default function Navigation() {
   const location = useLocation()
-  const { user, logout } = useMockAuth()
+  const { user, logout, hasPermission, canAccess } = useMockAuth()
 
   return (
     <nav className="bg-white shadow-lg w-64 min-h-screen">
@@ -39,6 +97,19 @@ export default function Navigation() {
         <div className="space-y-2">
           {navigation.map((item) => {
             const isCurrent = location.pathname === item.href
+            
+            // Check if user has access to this navigation item
+            let hasAccess = true
+            if (item.permission) {
+              hasAccess = hasPermission(item.permission)
+            } else if (item.resource) {
+              hasAccess = canAccess(item.resource)
+            }
+
+            if (!hasAccess) {
+              return null
+            }
+
             return (
               <Link
                 key={item.name}
@@ -56,8 +127,16 @@ export default function Navigation() {
           })}
         </div>
 
-        {/* Fiscal Year Selector */}
+        {/* Role Switcher */}
         <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Current Role
+          </p>
+          <RoleSwitcher />
+        </div>
+
+        {/* Fiscal Year Selector */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
             Fiscal Year
           </p>

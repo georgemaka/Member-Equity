@@ -9,6 +9,8 @@ import MemberOverview from '@/components/dashboard/MemberOverview'
 import DashboardFiltersPanel from '@/components/dashboard/DashboardFilters'
 import MemberDetailModal from '@/components/dashboard/MemberDetailModal'
 import ExportModal from '@/components/ExportModal'
+import AuditTrail from '@/components/AuditTrail'
+import DistributionRequestChart from '@/components/DistributionRequestChart'
 import {
   FunnelIcon,
   DocumentArrowDownIcon,
@@ -231,6 +233,9 @@ export default function ComprehensiveDashboard() {
 
         {/* Sidebar - Activities and Deadlines */}
         <div className="space-y-6">
+          {/* Distribution Request Analytics */}
+          <DistributionRequestChart />
+          
           {/* Recent Activities */}
           <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -318,6 +323,9 @@ export default function ComprehensiveDashboard() {
               </button>
             </div>
           </div>
+
+          {/* Audit Trail - Compact View */}
+          <AuditTrail compact={true} limit={10} />
         </div>
       </div>
 

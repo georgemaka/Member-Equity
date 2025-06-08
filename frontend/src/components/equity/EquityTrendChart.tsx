@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts'
-import { TrendingUpIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
+import { ArrowTrendingUpIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
 
 interface EquityTrendChartProps {
   currentYear: number
@@ -140,7 +140,7 @@ export default function EquityTrendChart({
     <div className={`bg-white p-6 rounded-xl border border-gray-100 shadow-lg ${expanded ? '' : ''}`}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <TrendingUpIcon className="h-6 w-6 text-indigo-600 mr-2" />
+          <ArrowTrendingUpIcon className="h-6 w-6 text-indigo-600 mr-2" />
           <h3 className="text-lg font-semibold text-gray-900">
             {expanded ? 'Detailed Equity Trends' : 'Equity Trends'}
           </h3>

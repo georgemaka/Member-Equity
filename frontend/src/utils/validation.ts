@@ -184,6 +184,42 @@ export const memberValidationSchema: ValidationSchema = {
   },
   zipCode: {
     pattern: /^\d{5}(-\d{4})?$/
+  },
+  socialSecurityNumber: {
+    pattern: /^\d{3}-?\d{2}-?\d{4}$/,
+    custom: (value) => {
+      if (!value) return null
+      // Format validation for SSN
+      const cleanSSN = value.replace(/[-\s]/g, '')
+      if (cleanSSN.length !== 9) {
+        return 'Social Security Number must be 9 digits'
+      }
+      return null
+    }
+  },
+  taxId: {
+    minLength: 1,
+    maxLength: 20,
+    pattern: /^[A-Za-z0-9-]+$/,
+    custom: (value) => {
+      if (!value) return null
+      if (value.trim().length === 0) {
+        return null
+      }
+      return null
+    }
+  },
+  employeeId: {
+    minLength: 1,
+    maxLength: 20,
+    pattern: /^[A-Za-z0-9-]+$/,
+    custom: (value) => {
+      if (!value) return null
+      if (value.trim().length === 0) {
+        return null
+      }
+      return null
+    }
   }
 }
 

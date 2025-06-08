@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { memberApi } from '@/services/memberApi'
-import { Member, CreateMemberDto, PaginatedMembers } from '@/types/member'
+import { useState, useMemo } from 'react'
+import { Member } from '@/types/member'
 import { useToast } from '@/contexts/ToastContext'
-import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useMockMembersData } from '@/hooks/useMockMembersData'
 import AddMemberModal from '@/components/AddMemberModal'
 import ExcelUploadModal from '@/components/ExcelUploadModal'
 import BoardEquityView from '@/components/BoardEquityView'
 import UpdateStatusModal from '@/components/UpdateStatusModal'
+import CreateDistributionRequestModal from '@/components/CreateDistributionRequestModal'
+import PermissionGuard from '@/components/PermissionGuard'
 import { 
   PlusIcon, 
   ArrowUpTrayIcon, 
@@ -20,24 +19,38 @@ import {
   ChartBarIcon,
   PresentationChartLineIcon,
   CheckCircleIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  FunnelIcon,
+  XMarkIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  DocumentCheckIcon
 } from '@heroicons/react/24/outline'
+
+type SortField = 'name' | 'email' | 'joinDate' | 'estimatedEquity' | 'finalEquity' | 'capitalBalance' | 'status'
+type SortDirection = 'asc' | 'desc'
 
 export default function Members() {
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
+  const [showFilters, setShowFilters] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showBoardView, setShowBoardView] = useState(false)
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [showDistributionRequestModal, setShowDistributionRequestModal] = useState(false)
+  const [selectedMemberForDistribution, setSelectedMemberForDistribution] = useState<Member | null>(null)
   
-  const queryClient = useQueryClient()
-  const { success, error: showError } = useToast()
-  const { currentFiscalYear } = useFiscalYear()
+  const { success } = useToast()
   
   // Use mock data for now instead of API
-  const { data: membersData, isLoading, error } = useMockMembersData(currentPage, 10)
+  const { data: membersData, isLoading, error } = useMockMembersData(currentPage, pageSize)
 
   const handleDownloadTemplate = () => {
     // Mock template download - in production this would call the API
@@ -109,10 +122,110 @@ export default function Members() {
   const totalFinalEquity = membersData?.data?.reduce((sum, m) => sum + (m.currentEquity?.finalPercentage || 0), 0) || 0
   const totalCapital = membersData?.data?.reduce((sum, m) => sum + (m.currentEquity?.capitalBalance || 0), 0) || 0
 
-  const filteredMembers = membersData?.data?.filter(member =>
-    `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  // Enhanced filtering and sorting
+  const filteredAndSortedMembers = useMemo(() => {
+    let filtered = membersData?.data?.filter(member => {
+      // Search filter
+      const searchMatch = searchTerm === '' || 
+        `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (member.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase())
+      
+      // Status filter
+      const statusMatch = statusFilter === 'all' || member.currentStatus?.status === statusFilter
+      
+      return searchMatch && statusMatch
+    }) || []
+    
+    // Sort filtered results
+    filtered.sort((a, b) => {
+      let aValue: any
+      let bValue: any
+      
+      switch (sortField) {
+        case 'name':
+          aValue = `${a.firstName} ${a.lastName}`.toLowerCase()
+          bValue = `${b.firstName} ${b.lastName}`.toLowerCase()
+          break
+        case 'email':
+          aValue = a.email.toLowerCase()
+          bValue = b.email.toLowerCase()
+          break
+        case 'joinDate':
+          aValue = new Date(a.joinDate)
+          bValue = new Date(b.joinDate)
+          break
+        case 'estimatedEquity':
+          aValue = a.currentEquity?.estimatedPercentage || 0
+          bValue = b.currentEquity?.estimatedPercentage || 0
+          break
+        case 'finalEquity':
+          aValue = a.currentEquity?.finalPercentage || 0
+          bValue = b.currentEquity?.finalPercentage || 0
+          break
+        case 'capitalBalance':
+          aValue = a.currentEquity?.capitalBalance || 0
+          bValue = b.currentEquity?.capitalBalance || 0
+          break
+        case 'status':
+          aValue = a.currentStatus?.status || 'active'
+          bValue = b.currentStatus?.status || 'active'
+          break
+        default:
+          return 0
+      }
+      
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+    
+    return filtered
+  }, [membersData?.data, searchTerm, statusFilter, sortField, sortDirection])
+  
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+  
+  // Handle bulk selection
+  const handleSelectAll = () => {
+    if (selectedMembers.size === filteredAndSortedMembers.length) {
+      setSelectedMembers(new Set())
+    } else {
+      setSelectedMembers(new Set(filteredAndSortedMembers.map(m => m.id)))
+    }
+  }
+  
+  const handleSelectMember = (memberId: string) => {
+    const newSelected = new Set(selectedMembers)
+    if (newSelected.has(memberId)) {
+      newSelected.delete(memberId)
+    } else {
+      newSelected.add(memberId)
+    }
+    setSelectedMembers(newSelected)
+  }
+  
+  // Get status options for filter
+  const statusOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'active', label: 'Active' },
+    { value: 'retired', label: 'Retired' },
+    { value: 'resigned', label: 'Resigned' },
+    { value: 'terminated', label: 'Terminated' },
+    { value: 'deceased', label: 'Deceased' },
+    { value: 'suspended', label: 'Suspended' },
+    { value: 'probationary', label: 'Probationary' }
+  ]
+  
+  // Page size options
+  const pageSizeOptions = [10, 25, 50, 100]
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -128,13 +241,15 @@ export default function Members() {
               </p>
             </div>
             <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
-              <button
-                onClick={() => setShowBoardView(true)}
-                className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
-              >
-                <PresentationChartLineIcon className="h-4 w-4 mr-2" />
-                Board View
-              </button>
+              <PermissionGuard permission="equity:manage">
+                <button
+                  onClick={() => setShowBoardView(true)}
+                  className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+                >
+                  <PresentationChartLineIcon className="h-4 w-4 mr-2" />
+                  Board View
+                </button>
+              </PermissionGuard>
               <button
                 onClick={handleDownloadTemplate}
                 className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
@@ -142,20 +257,24 @@ export default function Members() {
                 <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
                 Template
               </button>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
-              >
-                <ArrowUpTrayIcon className="h-4 w-4 mr-2" />
-                Upload
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-lg text-sukut-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200 transform hover:scale-105"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Member
-              </button>
+              <PermissionGuard permission="members:write">
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+                >
+                  <ArrowUpTrayIcon className="h-4 w-4 mr-2" />
+                  Upload
+                </button>
+              </PermissionGuard>
+              <PermissionGuard permission="members:write">
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-lg text-sukut-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200 transform hover:scale-105"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Member
+                </button>
+              </PermissionGuard>
             </div>
           </div>
         </div>
@@ -264,20 +383,116 @@ export default function Members() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search and Filters */}
       <div className="mb-6">
-        <div className="relative max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search members..."
+              className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-sukut-500 focus:border-sukut-500 shadow-sm transition-all duration-200"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search members..."
-            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-sukut-500 focus:border-sukut-500 shadow-sm transition-all duration-200"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          
+          {/* Filters */}
+          <div className="flex gap-2">
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-3 border border-gray-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sukut-500 focus:border-sukut-500 transition-all duration-200"
+            >
+              {statusOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            
+            {/* Page Size */}
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setCurrentPage(1)
+              }}
+              className="px-3 py-3 border border-gray-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sukut-500 focus:border-sukut-500 transition-all duration-200"
+            >
+              {pageSizeOptions.map(size => (
+                <option key={size} value={size}>{size} per page</option>
+              ))}
+            </select>
+            
+            {/* Toggle Filters */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`inline-flex items-center px-3 py-3 border border-gray-200 rounded-xl text-sm font-medium transition-all duration-200 ${
+                showFilters ? 'bg-sukut-50 text-sukut-600 border-sukut-200' : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <FunnelIcon className="h-4 w-4 mr-2" />
+              Filters
+            </button>
+          </div>
         </div>
+        
+        {/* Bulk Actions */}
+        {selectedMembers.size > 0 && (
+          <div className="mt-4 p-4 bg-sukut-50 border border-sukut-200 rounded-xl">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-sukut-800">
+                {selectedMembers.size} member{selectedMembers.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex gap-2">
+                <button className="px-3 py-1.5 text-sm bg-white border border-sukut-300 text-sukut-700 rounded-lg hover:bg-sukut-50 transition-colors duration-200">
+                  Export Selected
+                </button>
+                <button className="px-3 py-1.5 text-sm bg-white border border-sukut-300 text-sukut-700 rounded-lg hover:bg-sukut-50 transition-colors duration-200">
+                  Bulk Edit
+                </button>
+                <button 
+                  onClick={() => setSelectedMembers(new Set())}
+                  className="px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Active Filters Display */}
+        {(searchTerm || statusFilter !== 'all') && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="text-sm text-gray-500">Active filters:</span>
+            {searchTerm && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Search: "{searchTerm}"
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-600 hover:bg-blue-200 hover:text-blue-800"
+                >
+                  <XMarkIcon className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {statusFilter !== 'all' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Status: {statusOptions.find(opt => opt.value === statusFilter)?.label}
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-green-600 hover:bg-green-200 hover:text-green-800"
+                >
+                  <XMarkIcon className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Members Table */}
@@ -296,26 +511,94 @@ export default function Members() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedMembers.size === filteredAndSortedMembers.length && filteredAndSortedMembers.length > 0}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-sukut-600 focus:ring-sukut-500 border-gray-300 rounded"
+                    />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    <button
+                      onClick={() => handleSort('name')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Name</span>
+                      {sortField === 'name' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort('email')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Email</span>
+                      {sortField === 'email' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Job Title
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estimated %
+                    <button
+                      onClick={() => handleSort('estimatedEquity')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Estimated %</span>
+                      {sortField === 'estimatedEquity' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Final %
+                    <button
+                      onClick={() => handleSort('finalEquity')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Final %</span>
+                      {sortField === 'finalEquity' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Capital Balance
+                    <button
+                      onClick={() => handleSort('capitalBalance')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Capital Balance</span>
+                      {sortField === 'capitalBalance' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    <button
+                      onClick={() => handleSort('status')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Status</span>
+                      {sortField === 'status' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -323,8 +606,18 @@ export default function Members() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
+                {filteredAndSortedMembers.map((member) => (
+                  <tr key={member.id} className={`hover:bg-gray-50 transition-colors duration-200 ${
+                    selectedMembers.has(member.id) ? 'bg-sukut-50' : ''
+                  }`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.has(member.id)}
+                        onChange={() => handleSelectMember(member.id)}
+                        className="h-4 w-4 text-sukut-600 focus:ring-sukut-500 border-gray-300 rounded"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {member.firstName} {member.lastName}
@@ -399,22 +692,38 @@ export default function Members() {
                         >
                           <EyeIcon className="h-4 w-4" />
                         </button>
-                        <button 
-                          className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                          title="Edit Member"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedMember(member)
-                            setShowStatusModal(true)
-                          }}
-                          className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                          title="Update Status"
-                        >
-                          <UserCircleIcon className="h-4 w-4" />
-                        </button>
+                        <PermissionGuard permission="members:write">
+                          <button 
+                            className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                            title="Edit Member"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                        </PermissionGuard>
+                        <PermissionGuard permission="members:write">
+                          <button
+                            onClick={() => {
+                              setSelectedMember(member)
+                              setShowStatusModal(true)
+                            }}
+                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                            title="Update Status"
+                          >
+                            <UserCircleIcon className="h-4 w-4" />
+                          </button>
+                        </PermissionGuard>
+                        <PermissionGuard resource="distributions">
+                          <button
+                            onClick={() => {
+                              setSelectedMemberForDistribution(member)
+                              setShowDistributionRequestModal(true)
+                            }}
+                            className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200"
+                            title="Create Distribution Request"
+                          >
+                            <DocumentCheckIcon className="h-4 w-4" />
+                          </button>
+                        </PermissionGuard>
                       </div>
                     </td>
                   </tr>
@@ -422,65 +731,82 @@ export default function Members() {
               </tbody>
             </table>
 
-            {/* Pagination */}
+            {/* Enhanced Pagination */}
             {membersData && membersData.totalPages > 1 && (
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors duration-200"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setCurrentPage(Math.min(membersData.totalPages, currentPage + 1))}
                     disabled={currentPage === membersData.totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors duration-200"
                   >
                     Next
                   </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
+                  <div className="flex items-center space-x-4">
                     <p className="text-sm text-gray-700">
                       Showing{' '}
-                      <span className="font-medium">{(currentPage - 1) * 10 + 1}</span>
+                      <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span>
                       {' '}to{' '}
                       <span className="font-medium">
-                        {Math.min(currentPage * 10, membersData.total)}
+                        {Math.min(currentPage * pageSize, filteredAndSortedMembers.length)}
                       </span>
                       {' '}of{' '}
-                      <span className="font-medium">{membersData.total}</span>
+                      <span className="font-medium">{filteredAndSortedMembers.length}</span>
                       {' '}results
+                      {filteredAndSortedMembers.length !== membersData.total && (
+                        <span className="text-gray-500"> (filtered from {membersData.total} total)</span>
+                      )}
                     </p>
+                    {selectedMembers.size > 0 && (
+                      <span className="text-sm text-sukut-600 font-medium">
+                        {selectedMembers.size} selected
+                      </span>
+                    )}
                   </div>
-                  <div>
+                  <div className="flex items-center space-x-2">
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                       <button
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors duration-200"
                       >
                         Previous
                       </button>
-                      {[...Array(membersData.totalPages)].map((_, index) => (
-                        <button
-                          key={index + 1}
-                          onClick={() => setCurrentPage(index + 1)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === index + 1
-                              ? 'z-10 bg-sukut-50 border-sukut-500 text-sukut-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {index + 1}
-                        </button>
-                      ))}
+                      {[...Array(Math.min(membersData.totalPages, 10))].map((_, index) => {
+                        const pageNum = index + 1
+                        const isCurrentPage = currentPage === pageNum
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors duration-200 ${
+                              isCurrentPage
+                                ? 'z-10 bg-sukut-50 border-sukut-500 text-sukut-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+                      {membersData.totalPages > 10 && (
+                        <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                          ...
+                        </span>
+                      )}
                       <button
                         onClick={() => setCurrentPage(Math.min(membersData.totalPages, currentPage + 1))}
                         disabled={currentPage === membersData.totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors duration-200"
                       >
                         Next
                       </button>
@@ -519,6 +845,16 @@ export default function Members() {
           setSelectedMember(null)
         }}
         member={selectedMember}
+      />
+
+      {/* Create Distribution Request Modal */}
+      <CreateDistributionRequestModal
+        isOpen={showDistributionRequestModal}
+        onClose={() => {
+          setShowDistributionRequestModal(false)
+          setSelectedMemberForDistribution(null)
+        }}
+        preselectedMemberId={selectedMemberForDistribution?.id}
       />
     </div>
   )

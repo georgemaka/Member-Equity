@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: equity-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: equity_system
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - equity-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: equity-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - equity-network
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: equity-api
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/equity_system
+      - REDIS_URL=redis://redis:6379
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - equity-network
+    command: npm run start:dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: equity-frontend
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - VITE_WS_URL=ws://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - equity-network
+    command: npm run dev
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: equity-worker
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/equity_system
+      - REDIS_URL=redis://redis:6379
+      - BULL_REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - equity-network
+    command: npm run worker:dev
+
+  nginx:
+    image: nginx:alpine
+    container_name: equity-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - equity-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  equity-network:
+    driver: bridge

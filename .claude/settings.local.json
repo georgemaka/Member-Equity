@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm init:*)",
+      "Bash(npm create:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker logs:*)",
+      "Bash(npm install)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(npm install:*)",
+      "Bash(kill:*)",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

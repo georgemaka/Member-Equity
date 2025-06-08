@@ -1,0 +1,295 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                   String   @id @default(cuid())
+  name                 String   @unique
+  taxId                String   @unique
+  foundedDate          DateTime
+  fiscalYearEnd        String   // MM-DD format
+  equityTotalValue     Decimal  @db.Decimal(15, 2)
+  businessAddress      Json
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  members              Member[]
+  profits              CompanyProfit[]
+  distributions        Distribution[]
+  documents            Document[]
+
+  @@map("companies")
+}
+
+model Member {
+  id                      String     @id @default(cuid())
+  companyId               String
+  firstName               String
+  lastName                String
+  email                   String     @unique
+  phone                   String?
+  ssn                     String?    @unique
+  taxId                   String?    @unique
+  address                 Json
+  equityPercentage        Decimal    @db.Decimal(6, 4) // 0.0000 to 99.9999
+  taxWithholdingPercentage Decimal   @db.Decimal(5, 2) // 0.00 to 100.00
+  joinDate                DateTime
+  retirementDate          DateTime?
+  status                  MemberStatus @default(ACTIVE)
+  bankingInfo             Json?
+  notificationPreferences Json       @default("{}")
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+
+  company                 Company    @relation(fields: [companyId], references: [id])
+  equityHistory           EquityEvent[]
+  memberDistributions     MemberDistribution[]
+  documents               Document[]
+  balanceHistory          BalanceHistory[]
+
+  @@map("members")
+}
+
+model EquityEvent {
+  id                String            @id @default(cuid())
+  memberId          String
+  eventType         EquityEventType
+  previousPercentage Decimal?         @db.Decimal(6, 4)
+  newPercentage     Decimal           @db.Decimal(6, 4)
+  effectiveDate     DateTime
+  reason            String?
+  metadata          Json              @default("{}")
+  createdAt         DateTime          @default(now())
+
+  member            Member            @relation(fields: [memberId], references: [id])
+
+  @@map("equity_events")
+}
+
+model CompanyProfit {
+  id                String      @id @default(cuid())
+  companyId         String
+  year              Int
+  quarter           Int?        // null for annual, 1-4 for quarterly
+  revenue           Decimal     @db.Decimal(15, 2)
+  expenses          Decimal     @db.Decimal(15, 2)
+  netProfit         Decimal     @db.Decimal(15, 2)
+  distributableAmount Decimal   @db.Decimal(15, 2)
+  taxReserve        Decimal     @db.Decimal(15, 2)
+  reportDate        DateTime
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  company           Company     @relation(fields: [companyId], references: [id])
+  distributions     Distribution[]
+
+  @@unique([companyId, year, quarter])
+  @@map("company_profits")
+}
+
+model Distribution {
+  id                    String                @id @default(cuid())
+  companyId             String
+  companyProfitId       String
+  totalAmount           Decimal               @db.Decimal(15, 2)
+  distributionDate      DateTime
+  status                DistributionStatus    @default(PENDING)
+  approvedBy            String?
+  approvedAt            DateTime?
+  processedAt           DateTime?
+  paymentMethod         PaymentMethod         @default(ACH)
+  metadata              Json                  @default("{}")
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  company               Company               @relation(fields: [companyId], references: [id])
+  companyProfit         CompanyProfit         @relation(fields: [companyProfitId], references: [id])
+  memberDistributions   MemberDistribution[]
+
+  @@map("distributions")
+}
+
+model MemberDistribution {
+  id                String           @id @default(cuid())
+  distributionId    String
+  memberId          String
+  amount            Decimal          @db.Decimal(15, 2)
+  taxWithholding    Decimal          @db.Decimal(15, 2)
+  netAmount         Decimal          @db.Decimal(15, 2)
+  paymentStatus     PaymentStatus    @default(PENDING)
+  paymentReference  String?
+  paymentDate       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  distribution      Distribution     @relation(fields: [distributionId], references: [id])
+  member            Member           @relation(fields: [memberId], references: [id])
+
+  @@map("member_distributions")
+}
+
+model BalanceHistory {
+  id                String    @id @default(cuid())
+  memberId          String
+  distributionId    String?   // null for initial balance or adjustments
+  balanceType       BalanceType
+  previousBalance   Decimal   @db.Decimal(15, 2)
+  change            Decimal   @db.Decimal(15, 2)
+  newBalance        Decimal   @db.Decimal(15, 2)
+  description       String?
+  effectiveDate     DateTime
+  createdAt         DateTime  @default(now())
+
+  member            Member    @relation(fields: [memberId], references: [id])
+
+  @@map("balance_history")
+}
+
+model Document {
+  id              String        @id @default(cuid())
+  companyId       String?
+  memberId        String?
+  documentType    DocumentType
+  title           String
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  s3Key           String        @unique
+  year            Int?
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  company         Company?      @relation(fields: [companyId], references: [id])
+  member          Member?       @relation(fields: [memberId], references: [id])
+
+  @@map("documents")
+}
+
+model EventStore {
+  id              String    @id @default(cuid())
+  aggregateId     String
+  aggregateType   String
+  eventType       String
+  eventVersion    Int       @default(1)
+  eventData       Json
+  metadata        Json      @default("{}")
+  timestamp       DateTime  @default(now())
+  sequence        Int       @default(autoincrement())
+
+  @@index([aggregateId, aggregateType])
+  @@index([timestamp])
+  @@map("event_store")
+}
+
+model Notification {
+  id              String            @id @default(cuid())
+  recipientId     String            // Can be member ID or admin ID
+  type            NotificationType
+  title           String
+  message         String
+  data            Json              @default("{}")
+  readAt          DateTime?
+  sentAt          DateTime?
+  status          NotificationStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id              String    @id @default(cuid())
+  userId          String    // User who performed the action
+  action          String
+  resourceType    String
+  resourceId      String?
+  previousData    Json?
+  newData         Json?
+  ipAddress       String?
+  userAgent       String?
+  timestamp       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// Enums
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  RETIRED
+  TERMINATED
+}
+
+enum EquityEventType {
+  INITIAL_GRANT
+  PERCENTAGE_CHANGE
+  RETIREMENT
+  TERMINATION
+  ADJUSTMENT
+}
+
+enum DistributionStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  ACH
+  WIRE
+  CHECK
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum BalanceType {
+  CAPITAL_ACCOUNT
+  DISTRIBUTION_ACCOUNT
+  TAX_WITHHOLDING
+}
+
+enum DocumentType {
+  K1_TAX_FORM
+  QUARTERLY_STATEMENT
+  ANNUAL_STATEMENT
+  DISTRIBUTION_NOTICE
+  BANKING_INFO
+  CONTRACT
+  OTHER
+}
+
+enum NotificationType {
+  DISTRIBUTION_CALCULATED
+  DISTRIBUTION_APPROVED
+  PAYMENT_PROCESSED
+  DOCUMENT_READY
+  EQUITY_CHANGED
+  SYSTEM_ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}

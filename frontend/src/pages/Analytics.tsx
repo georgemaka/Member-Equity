@@ -48,18 +48,45 @@ export default function Analytics() {
   const { success } = useToast()
   
   // Get data
-  const { data: membersData } = useMockMembersData(1, 100)
-  const { data: distributionsData } = useMockDistributionsData()
-  const { data: taxData } = useMockTaxPaymentsData()
+  const { data: membersData, isLoading: membersLoading, error: membersError } = useMockMembersData(1, 100)
+  const { data: distributionsData, isLoading: distributionsLoading, error: distributionsError } = useMockDistributionsData()
+  const { data: taxData, isLoading: taxLoading, error: taxError } = useMockTaxPaymentsData()
 
-  // Calculate metrics
+  // Show loading state
+  if (membersLoading || distributionsLoading || taxLoading) {
+    return (
+      <div className="px-4 py-6 sm:px-0">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <p className="ml-4 text-lg text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (membersError || distributionsError || taxError) {
+    return (
+      <div className="px-4 py-6 sm:px-0">
+        <div className="text-center py-12">
+          <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Analytics</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {(membersError || distributionsError || taxError)?.message || 'Unknown error occurred'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Calculate metrics  
   const totalMembers = membersData?.total || 0
   const activeMembers = membersData?.data?.filter(m => m.currentStatus?.status === 'active').length || 0
   const totalEstimatedEquity = membersData?.data?.reduce((sum, m) => sum + (m.currentEquity?.estimatedPercentage || 0), 0) || 0
   const totalCapitalBalance = membersData?.data?.reduce((sum, m) => sum + (m.currentEquity?.capitalBalance || 0), 0) || 0
   
   const totalDistributionsAmount = distributionsData?.distributions?.reduce((sum: number, dist: any) => 
-    sum + dist.distributions.reduce((distSum: number, d: any) => distSum + d.distributionAmount, 0), 0
+    sum + dist.totalAmount, 0
   ) || 0
   
   const totalTaxPayments = taxData?.taxPayments?.reduce((sum: number, tax: any) => sum + tax.totalPaid, 0) || 0

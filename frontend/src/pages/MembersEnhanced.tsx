@@ -53,11 +53,6 @@ export default function MembersEnhanced() {
   
   const { success } = useToast()
   const { data: membersData, isLoading, error } = useMockMembersData(1, 100) // Get all members
-  
-  // Debug logging
-  console.log('Members data:', membersData)
-  console.log('Is loading:', isLoading)
-  console.log('Error:', error)
 
   // Convert Member data to MemberSummary format
   const memberSummaries = useMemo(() => {

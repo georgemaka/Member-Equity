@@ -543,8 +543,8 @@ export default function DistributionManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Members
                   </th>
-                  <th className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -590,8 +590,9 @@ export default function DistributionManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.memberName || `${item.memberCount || 0} members`}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-32">
                         <div className="flex items-center justify-end space-x-1">
+                          {/* Debug: Always show all buttons to test */}
                           <button
                             onClick={() => {
                               setSelectedItem(item)
@@ -603,41 +604,20 @@ export default function DistributionManagement() {
                             <EyeIcon className="h-4 w-4" />
                           </button>
                           
-                          {/* Contextual Actions */}
-                          {item.status === 'pending_approval' && (
-                            <PermissionGuard permission="distributions:approve">
-                              <button
-                                onClick={() => handleAction(item, 'approve')}
-                                className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors"
-                                title="Approve"
-                              >
-                                <CheckCircleIcon className="h-4 w-4" />
-                              </button>
-                            </PermissionGuard>
-                          )}
+                          <button
+                            onClick={() => handleAction(item, 'approve')}
+                            className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors"
+                            title="Approve"
+                          >
+                            <CheckCircleIcon className="h-4 w-4" />
+                          </button>
                           
-                          {item.status === 'approved' && (
-                            <PermissionGuard permission="distributions:process">
-                              <button
-                                onClick={() => handleAction(item, 'process')}
-                                className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
-                                title="Process Payment"
-                              >
-                                <BanknotesIcon className="h-4 w-4" />
-                              </button>
-                            </PermissionGuard>
-                          )}
-                          
-                          {item.type === 'request' && ['draft', 'edit_requested'].includes(item.status) && (
-                            <PermissionGuard permission="distributions:write">
-                              <button
-                                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                                title="Edit"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                            </PermissionGuard>
-                          )}
+                          <button
+                            className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>

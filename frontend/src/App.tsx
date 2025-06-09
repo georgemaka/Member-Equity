@@ -5,12 +5,11 @@ import { ToastProvider } from '@/contexts/ToastContext'
 import { FiscalYearProvider } from '@/contexts/FiscalYearContext'
 import ComprehensiveDashboard from '@/pages/ComprehensiveDashboard'
 import MemberDashboard from '@/pages/MemberDashboard'
-import Members from '@/pages/Members'
+import MembersEnhanced from '@/pages/MembersEnhanced'
 import Equity from '@/pages/Equity'
 import TaxPayments from '@/pages/TaxPayments'
 import YearEndAllocation from '@/pages/YearEndAllocation'
-import Distributions from '@/pages/Distributions'
-import DistributionRequests from '@/pages/DistributionRequests'
+import DistributionManagement from '@/pages/DistributionManagement'
 import Analytics from '@/pages/Analytics'
 import Documents from '@/pages/Documents'
 import Audit from '@/pages/Audit'
@@ -33,7 +32,7 @@ function AppRoutes() {
         path="/members" 
         element={
           <PermissionGuard resource="members">
-            <Members />
+            <MembersEnhanced />
           </PermissionGuard>
         } 
       />
@@ -65,15 +64,16 @@ function AppRoutes() {
         path="/distributions" 
         element={
           <PermissionGuard resource="distributions">
-            <Distributions />
+            <DistributionManagement />
           </PermissionGuard>
         } 
       />
+      {/* Legacy route redirect for distribution-requests */}
       <Route 
         path="/distribution-requests" 
         element={
           <PermissionGuard resource="distributions">
-            <DistributionRequests />
+            <DistributionManagement />
           </PermissionGuard>
         } 
       />

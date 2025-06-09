@@ -55,12 +55,6 @@ const navigation = [
     resource: 'distributions'
   },
   { 
-    name: 'Distribution Requests', 
-    href: '/distribution-requests', 
-    icon: DocumentCheckIcon,
-    resource: 'distributions'
-  },
-  { 
     name: 'Analytics', 
     href: '/analytics', 
     icon: ChartBarIcon,

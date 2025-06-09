@@ -5,7 +5,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useMockDashboardData } from '@/hooks/useMockDashboardData'
 import { DashboardFilters, DashboardGroupBy } from '@/types/dashboard'
 import ExecutiveSummary from '@/components/dashboard/ExecutiveSummary'
-import MemberOverview from '@/components/dashboard/MemberOverview'
+import MemberOverviewCompact from '@/components/dashboard/MemberOverviewCompact'
 import DashboardFiltersPanel from '@/components/dashboard/DashboardFilters'
 import MemberDetailModal from '@/components/dashboard/MemberDetailModal'
 import ExportModal from '@/components/ExportModal'
@@ -220,12 +220,11 @@ export default function ComprehensiveDashboard() {
             </div>
             
             {dashboardData && (
-              <MemberOverview
+              <MemberOverviewCompact
                 members={dashboardData.memberSummaries}
-                groupAnalyses={dashboardData.groupAnalyses}
                 onMemberSelect={handleMemberSelect}
-                onMemberCompare={handleMemberCompare}
                 loading={isLoading}
+                limit={10}
               />
             )}
           </div>

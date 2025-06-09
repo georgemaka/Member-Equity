@@ -3,6 +3,7 @@ import { XMarkIcon, CheckIcon, UsersIcon } from '@heroicons/react/24/outline'
 import { useToast } from '@/contexts/ToastContext'
 import FormField from '@/components/FormField'
 import { useFormValidation, memberValidationSchema } from '@/utils/validation'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface BulkEditModalProps {
   memberIds: string[]
@@ -22,6 +23,7 @@ interface BulkEditData {
 }
 
 export default function BulkEditModal({ memberIds, isOpen, onClose, onSave }: BulkEditModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { success } = useToast()
   const [formData, setFormData] = useState<BulkEditData>({})
   const [enabledFields, setEnabledFields] = useState<Set<string>>(new Set())

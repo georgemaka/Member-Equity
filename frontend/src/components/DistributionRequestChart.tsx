@@ -5,8 +5,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   CurrencyDollarIcon,
-  TrendingUpIcon,
-  TrendingDownIcon
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon
 } from '@heroicons/react/24/outline'
 
 interface DistributionRequestChartProps {
@@ -112,9 +112,9 @@ export default function DistributionRequestChart({ className = '' }: Distributio
           <h4 className="text-sm font-medium text-gray-700">Monthly Request Volume</h4>
           <div className="flex items-center text-xs">
             {isPositiveTrend ? (
-              <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+              <ArrowTrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
             ) : (
-              <TrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
+              <ArrowTrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
             )}
             <span className={isPositiveTrend ? 'text-green-600' : 'text-red-600'}>
               {Math.abs(trendPercentage).toFixed(1)}%

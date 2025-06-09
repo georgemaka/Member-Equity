@@ -6,6 +6,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import FormField from '@/components/FormField'
 import { useFormValidation, memberValidationSchema, equityValidationSchema } from '@/utils/validation'
 import { useUniqueValidation } from '@/hooks/useUniqueValidation'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -32,6 +33,9 @@ interface FormData {
 
 
 export default function AddMemberModal({ isOpen, onClose }: AddMemberModalProps) {
+  // Use escape key to close modal
+  useEscapeKey(onClose, isOpen)
+  
   // Combine member and equity validation schemas
   const validationSchema = { 
     ...memberValidationSchema, 

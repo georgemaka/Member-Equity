@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { taxPaymentApi } from '@/services/taxPaymentApi'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { TaxPaymentUploadResult } from '@/types/taxPayment'
 import { 
   XMarkIcon,
@@ -19,6 +20,7 @@ interface TaxPaymentUploadModalProps {
 }
 
 export default function TaxPaymentUploadModal({ isOpen, onClose }: TaxPaymentUploadModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { currentFiscalYear } = useFiscalYear()
   const { success, error: showError, warning } = useToast()
   const queryClient = useQueryClient()

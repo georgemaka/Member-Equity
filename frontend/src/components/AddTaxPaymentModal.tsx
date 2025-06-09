@@ -12,6 +12,7 @@ import {
 } from '@/types/taxPayment'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface AddTaxPaymentModalProps {
@@ -48,6 +49,7 @@ interface FormErrors {
 }
 
 export default function AddTaxPaymentModal({ isOpen, onClose }: AddTaxPaymentModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { currentFiscalYear } = useFiscalYear()
   const { success, error: showError } = useToast()
   const queryClient = useQueryClient()

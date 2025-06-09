@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { XMarkIcon, DocumentArrowDownIcon, TableCellsIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useToast } from '@/contexts/ToastContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import * as XLSX from 'xlsx'
 
 interface ExportModalProps {
@@ -25,6 +26,7 @@ export default function ExportModal({
   title = "Export Data",
   filename = "export"
 }: ExportModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { success } = useToast()
   
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('excel')

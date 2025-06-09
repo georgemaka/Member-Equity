@@ -4,6 +4,7 @@ import { useCreateDistributionRequest } from '@/hooks/useMockDistributionRequest
 import { DistributionType, PayoutMethod, ApprovalStep } from '@/types/distributionRequest'
 import { useToast } from '@/contexts/ToastContext'
 import { useMockAuth } from '@/contexts/MockAuthContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import {
   XMarkIcon,
   CurrencyDollarIcon,
@@ -61,6 +62,7 @@ export default function CreateDistributionRequestModal({
   onClose,
   preselectedMemberId
 }: CreateDistributionRequestModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { data: membersData } = useMockMembersData(1, 100)
   const createRequest = useCreateDistributionRequest()
   const { success, error } = useToast()

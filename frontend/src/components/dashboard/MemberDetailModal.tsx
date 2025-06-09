@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '@/services/dashboardApi'
 import { MemberDetailDashboard } from '@/types/dashboard'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import {
   XMarkIcon,
   UserIcon,
@@ -80,6 +81,7 @@ function LoadingSkeleton() {
 }
 
 export default function MemberDetailModal({ memberId, isOpen, onClose }: MemberDetailModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { currentFiscalYear } = useFiscalYear()
   const [isEditing, setIsEditing] = useState(false)
   const [editedMember, setEditedMember] = useState<any>(null)

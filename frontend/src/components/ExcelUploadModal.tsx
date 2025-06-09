@@ -2,6 +2,7 @@ import { useState, useRef, DragEvent, ChangeEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { UploadResult } from '@/types/member'
 import { useToast } from '@/contexts/ToastContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { 
   XMarkIcon, 
   CloudArrowUpIcon, 
@@ -16,6 +17,7 @@ interface ExcelUploadModalProps {
 }
 
 export default function ExcelUploadModal({ isOpen, onClose }: ExcelUploadModalProps) {
+  useEscapeKey(onClose, isOpen)
   const [file, setFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [skipValidation, setSkipValidation] = useState(false)

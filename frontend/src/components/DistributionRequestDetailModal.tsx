@@ -3,6 +3,7 @@ import { useMockDistributionRequestById, useApproveDistributionRequest } from '@
 import { useToast } from '@/contexts/ToastContext'
 import { useMockAuth } from '@/contexts/MockAuthContext'
 import PermissionGuard from './PermissionGuard'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import {
   XMarkIcon,
   CheckCircleIcon,
@@ -74,6 +75,7 @@ export default function DistributionRequestDetailModal({
   isOpen,
   onClose
 }: DistributionRequestDetailModalProps) {
+  useEscapeKey(onClose, isOpen)
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | 'request_edit'>('approve')
   const [approvalComments, setApprovalComments] = useState('')

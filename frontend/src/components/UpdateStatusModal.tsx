@@ -4,6 +4,7 @@ import { memberApi } from '@/services/memberApi'
 import { Member, MemberStatus, UpdateMemberStatusDto } from '@/types/member'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UpdateStatusModalProps {
@@ -58,6 +59,7 @@ const statusOptions: { value: MemberStatus; label: string; description: string; 
 ]
 
 export default function UpdateStatusModal({ isOpen, onClose, member }: UpdateStatusModalProps) {
+  useEscapeKey(onClose, isOpen)
   const { currentFiscalYear } = useFiscalYear()
   const { success, error: showError } = useToast()
   const queryClient = useQueryClient()

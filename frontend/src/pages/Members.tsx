@@ -2,11 +2,14 @@ import { useState, useMemo } from 'react'
 import { Member } from '@/types/member'
 import { useToast } from '@/contexts/ToastContext'
 import { useMockMembersData } from '@/hooks/useMockMembersData'
+import { useMockMemberAllocations } from '@/hooks/useMockFinancialsData'
+import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import AddMemberModal from '@/components/AddMemberModal'
 import ExcelUploadModal from '@/components/ExcelUploadModal'
 import BoardEquityView from '@/components/BoardEquityView'
 import UpdateStatusModal from '@/components/UpdateStatusModal'
 import CreateDistributionRequestModal from '@/components/CreateDistributionRequestModal'
+import MemberAllocationModal from '@/components/MemberAllocationModal'
 import PermissionGuard from '@/components/PermissionGuard'
 import { 
   PlusIcon, 
@@ -24,13 +27,16 @@ import {
   XMarkIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  DocumentCheckIcon
+  DocumentCheckIcon,
+  CurrencyDollarIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
 
-type SortField = 'name' | 'email' | 'joinDate' | 'estimatedEquity' | 'finalEquity' | 'capitalBalance' | 'status'
+type SortField = 'name' | 'email' | 'joinDate' | 'estimatedEquity' | 'finalEquity' | 'capitalBalance' | 'status' | 'balanceIncentive' | 'equityAllocation' | 'totalAllocation'
 type SortDirection = 'asc' | 'desc'
 
 export default function Members() {
+  const { currentFiscalYear } = useFiscalYear()
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchTerm, setSearchTerm] = useState('')
@@ -46,11 +52,22 @@ export default function Members() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [showDistributionRequestModal, setShowDistributionRequestModal] = useState(false)
   const [selectedMemberForDistribution, setSelectedMemberForDistribution] = useState<Member | null>(null)
+  const [showAllocationModal, setShowAllocationModal] = useState(false)
+  const [selectedMemberForAllocation, setSelectedMemberForAllocation] = useState<Member | null>(null)
+  const [showAllocationDetails, setShowAllocationDetails] = useState(false)
   
   const { success } = useToast()
   
   // Use mock data for now instead of API
   const { data: membersData, isLoading, error } = useMockMembersData(currentPage, pageSize)
+  
+  // Fetch allocation data for all members
+  const { data: allMemberAllocations } = useMockMemberAllocations(currentFiscalYear)
+
+  // Helper function to get allocation data for a specific member
+  const getMemberAllocation = (memberId: string) => {
+    return allMemberAllocations?.find(allocation => allocation.memberId === memberId)
+  }
 
   const handleDownloadTemplate = () => {
     // Mock template download - in production this would call the API
@@ -142,6 +159,9 @@ export default function Members() {
       let aValue: any
       let bValue: any
       
+      const aAllocation = getMemberAllocation(a.id)
+      const bAllocation = getMemberAllocation(b.id)
+      
       switch (sortField) {
         case 'name':
           aValue = `${a.firstName} ${a.lastName}`.toLowerCase()
@@ -167,6 +187,18 @@ export default function Members() {
           aValue = a.currentEquity?.capitalBalance || 0
           bValue = b.currentEquity?.capitalBalance || 0
           break
+        case 'balanceIncentive':
+          aValue = aAllocation?.balanceIncentiveReturn || 0
+          bValue = bAllocation?.balanceIncentiveReturn || 0
+          break
+        case 'equityAllocation':
+          aValue = aAllocation?.equityBasedAllocation || 0
+          bValue = bAllocation?.equityBasedAllocation || 0
+          break
+        case 'totalAllocation':
+          aValue = aAllocation?.allocationAmount || 0
+          bValue = bAllocation?.allocationAmount || 0
+          break
         case 'status':
           aValue = a.currentStatus?.status || 'active'
           bValue = b.currentStatus?.status || 'active'
@@ -181,7 +213,7 @@ export default function Members() {
     })
     
     return filtered
-  }, [membersData?.data, searchTerm, statusFilter, sortField, sortDirection])
+  }, [membersData?.data, searchTerm, statusFilter, sortField, sortDirection, allMemberAllocations])
   
   // Handle sorting
   const handleSort = (field: SortField) => {
@@ -589,6 +621,45 @@ export default function Members() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
+                      onClick={() => handleSort('balanceIncentive')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Balance Incentive</span>
+                      {sortField === 'balanceIncentive' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort('equityAllocation')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Equity Allocation</span>
+                      {sortField === 'equityAllocation' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort('totalAllocation')}
+                      className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      <span>Total Allocation</span>
+                      {sortField === 'totalAllocation' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
                       onClick={() => handleSort('status')}
                       className="flex items-center space-x-1 hover:text-gray-700 transition-colors duration-200"
                     >
@@ -671,6 +742,51 @@ export default function Members() {
                       ${member.currentEquity?.capitalBalance?.toLocaleString() || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {(() => {
+                        const allocation = getMemberAllocation(member.id)
+                        return (
+                          <div className="space-y-1">
+                            <span className="text-sm font-semibold text-blue-600">
+                              ${allocation?.balanceIncentiveReturn?.toLocaleString() || '0'}
+                            </span>
+                            <div className="text-xs text-gray-500">
+                              {allocation?.effectiveReturnRate?.toFixed(2) || '0.00'}% of balance
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {(() => {
+                        const allocation = getMemberAllocation(member.id)
+                        return (
+                          <div className="space-y-1">
+                            <span className="text-sm font-semibold text-purple-600">
+                              ${allocation?.equityBasedAllocation?.toLocaleString() || '0'}
+                            </span>
+                            <div className="text-xs text-gray-500">
+                              {member.currentEquity?.finalPercentage?.toFixed(2) || '0.00'}% equity
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {(() => {
+                        const allocation = getMemberAllocation(member.id)
+                        return (
+                          <div className="space-y-1">
+                            <span className="text-sm font-bold text-green-600">
+                              ${allocation?.allocationAmount?.toLocaleString() || '0'}
+                            </span>
+                            <div className="text-xs text-gray-500">
+                              Total allocation
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full shadow-sm ${
                         getStatusStyle(member.currentStatus?.status || 'active')
                       }`}>
@@ -686,14 +802,28 @@ export default function Members() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex space-x-1">
                         <button
+                          onClick={() => {
+                            setSelectedMemberForAllocation(member)
+                            setShowAllocationModal(true)
+                          }}
+                          className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all duration-200"
+                          title="View Allocation Details"
+                        >
+                          <CurrencyDollarIcon className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => setSelectedMember(member)}
                           className="p-2 text-sukut-600 hover:text-sukut-700 hover:bg-sukut-50 rounded-lg transition-all duration-200"
-                          title="View Details"
+                          title="View Member Details"
                         >
                           <EyeIcon className="h-4 w-4" />
                         </button>
                         <PermissionGuard permission="members:write">
                           <button 
+                            onClick={() => {
+                              // TODO: Implement edit member functionality
+                              success('Edit Member', 'Edit member functionality will be implemented')
+                            }}
                             className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200"
                             title="Edit Member"
                           >
@@ -855,6 +985,17 @@ export default function Members() {
           setSelectedMemberForDistribution(null)
         }}
         preselectedMemberId={selectedMemberForDistribution?.id}
+      />
+
+      {/* Member Allocation Modal */}
+      <MemberAllocationModal
+        isOpen={showAllocationModal}
+        onClose={() => {
+          setShowAllocationModal(false)
+          setSelectedMemberForAllocation(null)
+        }}
+        memberId={selectedMemberForAllocation?.id || ''}
+        memberName={selectedMemberForAllocation ? `${selectedMemberForAllocation.firstName} ${selectedMemberForAllocation.lastName}` : ''}
       />
     </div>
   )

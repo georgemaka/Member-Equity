@@ -14,6 +14,11 @@ export interface CompanyFinancials {
   sofrSource?: string // e.g., "Federal Reserve Bank of NY"
   sofrPeriod?: string // e.g., "FY 2024 Annual Average"
   
+  // Allocation Breakdown
+  totalBalanceIncentiveReturns?: number // Sum of all balance incentive returns
+  remainingNetIncome?: number // finalAllocableAmount - totalBalanceIncentiveReturns
+  effectiveReturnRate?: number // Min(SOFR + 5%, 10%)
+  
   // Balance Sheet Reconciliation
   totalEquityBalanceSheet: number // Total equity per balance sheet
   totalMemberCapitalAccounts: number // Sum of all member capital accounts
@@ -41,7 +46,10 @@ export interface MemberAllocation {
   
   // Allocation Details
   equityPercentage: number // Member's equity % at time of allocation
-  allocationAmount: number // Their share of finalAllocableAmount
+  allocationAmount: number // Total allocation (balance incentive + equity-based)
+  balanceIncentiveReturn: number // Min(SOFR + 5%, 10%) × Member Balance
+  equityBasedAllocation: number // Remaining Net Income × Member's Equity %
+  effectiveReturnRate: number // The rate used for balance incentive
   
   // Capital Account Impact
   beginningCapitalBalance: number
@@ -91,7 +99,10 @@ export interface AllocationPreview {
     equityPercentage: number
     currentCapitalBalance: number
   }
-  allocationAmount: number
+  allocationAmount: number // Total allocation (balance incentive + equity-based)
+  balanceIncentiveReturn: number // Min(SOFR + 5%, 10%) × Member Balance
+  equityBasedAllocation: number // Remaining Net Income × Member's Equity %
+  effectiveReturnRate: number // The rate used for balance incentive (Min(SOFR + 5%, 10%))
   newCapitalBalance: number
   distributionsToDate: number
 }

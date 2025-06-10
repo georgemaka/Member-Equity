@@ -15,7 +15,9 @@ import {
   UsersIcon,
   ChartBarIcon,
   PresentationChartLineIcon,
-  DocumentCheckIcon
+  DocumentCheckIcon,
+  CurrencyDollarIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline'
 
 // Adapter function to convert Member to MemberSummary
@@ -45,10 +47,253 @@ const convertToMemberSummary = (member: Member): MemberSummary => {
   }
 }
 
+// Financial Summary Table Component (Excel-style)
+function MemberFinancialSummaryTable({ members }: { members: MemberSummary[] }) {
+  const [sortField, setSortField] = useState<string>('name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Mock financial data - in production this would come from actual financial APIs
+  const getFinancialData = (memberId: string) => {
+    // Use member ID hash for consistent data
+    const hash = memberId.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0)
+      return a & a
+    }, 0)
+    const baseData = Math.abs(hash % 100000) + 10000
+    
+    return {
+      estimatedProfitsInterest: baseData * 0.05,
+      preferredReturn: baseData * 0.08,
+      caPteeTaxCredit: baseData * 0.02,
+      actualProfitsPercent: (Math.abs(hash % 500) / 100),
+      actualProfitsAmount: baseData * 0.04,
+      contributions: baseData * 0.3,
+      distributions: baseData * 0.2,
+      redemptions: baseData * 0.1,
+      esPaymentsAccruals: baseData * 0.15,
+      reclassificationOther: baseData * 0.05,
+      balance: baseData,
+      deferredTax: baseData * 0.12
+    }
+  }
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  const formatPercent = (percent: number) => {
+    return `${percent.toFixed(2)}%`
+  }
+
+  // Calculate totals
+  const totals = members.reduce((acc, member) => {
+    const financialData = getFinancialData(member.member.id)
+    return {
+      estimatedProfitsInterest: acc.estimatedProfitsInterest + financialData.estimatedProfitsInterest,
+      preferredReturn: acc.preferredReturn + financialData.preferredReturn,
+      caPteeTaxCredit: acc.caPteeTaxCredit + financialData.caPteeTaxCredit,
+      actualProfitsPercent: acc.actualProfitsPercent + financialData.actualProfitsPercent,
+      actualProfitsAmount: acc.actualProfitsAmount + financialData.actualProfitsAmount,
+      contributions: acc.contributions + financialData.contributions,
+      distributions: acc.distributions + financialData.distributions,
+      redemptions: acc.redemptions + financialData.redemptions,
+      esPaymentsAccruals: acc.esPaymentsAccruals + financialData.esPaymentsAccruals,
+      reclassificationOther: acc.reclassificationOther + financialData.reclassificationOther,
+      balance: acc.balance + financialData.balance,
+      deferredTax: acc.deferredTax + financialData.deferredTax
+    }
+  }, {
+    estimatedProfitsInterest: 0,
+    preferredReturn: 0,
+    caPteeTaxCredit: 0,
+    actualProfitsPercent: 0,
+    actualProfitsAmount: 0,
+    contributions: 0,
+    distributions: 0,
+    redemptions: 0,
+    esPaymentsAccruals: 0,
+    reclassificationOther: 0,
+    balance: 0,
+    deferredTax: 0
+  })
+
+  return (
+    <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900">Member Financial Summary</h3>
+        <p className="text-sm text-gray-600">Excel-style financial tracking for FY25</p>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                Member
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Est. Profits Interest
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Preferred Return
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                CA PTE Tax Credit
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actual Profits %
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actual Profits $
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contributions
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Distributions
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Redemptions
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ES Payments
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reclassification
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Balance
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Deferred Tax
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {members.map((member) => {
+              const financialData = getFinancialData(member.member.id)
+              return (
+                <tr key={member.member.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-4 whitespace-nowrap sticky left-0 bg-white z-10">
+                    <div className="text-sm font-medium text-gray-900">
+                      {member.member.firstName} {member.member.lastName}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {member.currentEquityPercentage.toFixed(3)}% equity
+                    </div>
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.estimatedProfitsInterest)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.preferredReturn)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.caPteeTaxCredit)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatPercent(financialData.actualProfitsPercent)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.actualProfitsAmount)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.contributions)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.distributions)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.redemptions)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.esPaymentsAccruals)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.reclassificationOther)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
+                    {formatCurrency(financialData.balance)}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {formatCurrency(financialData.deferredTax)}
+                  </td>
+                </tr>
+              )
+            })}
+            {/* Totals Row */}
+            <tr className="bg-gray-100 font-semibold border-t-2 border-gray-300">
+              <td className="px-3 py-4 whitespace-nowrap sticky left-0 bg-gray-100 z-10">
+                <div className="text-sm font-bold text-gray-900">
+                  TOTALS
+                </div>
+                <div className="text-sm text-gray-600">
+                  {members.length} members
+                </div>
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.estimatedProfitsInterest)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.preferredReturn)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.caPteeTaxCredit)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatPercent(totals.actualProfitsPercent)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.actualProfitsAmount)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.contributions)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.distributions)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.redemptions)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.esPaymentsAccruals)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.reclassificationOther)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-center bg-yellow-50">
+                {formatCurrency(totals.balance)}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                {formatCurrency(totals.deferredTax)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function MembersEnhanced() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showBoardView, setShowBoardView] = useState(false)
+  const [showFinancialSummary, setShowFinancialSummary] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   
   const { success } = useToast()
@@ -131,7 +376,7 @@ export default function MembersEnhanced() {
 
   if (error) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="w-full">
         <div className="text-center py-12">
           <p className="text-sm text-red-600">Failed to load members: {(error as Error).message}</p>
         </div>
@@ -140,7 +385,7 @@ export default function MembersEnhanced() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -157,6 +402,17 @@ export default function MembersEnhanced() {
             >
               <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
               Export
+            </button>
+            <button
+              onClick={() => setShowFinancialSummary(!showFinancialSummary)}
+              className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors flex items-center ${
+                showFinancialSummary 
+                  ? 'bg-green-50 text-green-700 border-green-300' 
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+              Financial Summary
             </button>
             <button
               onClick={() => setShowBoardView(!showBoardView)}
@@ -276,9 +532,14 @@ export default function MembersEnhanced() {
         </div>
       )}
 
-      {/* Board View or Enhanced Table */}
+      {/* Content Views */}
       {showBoardView ? (
-        <BoardEquityView />
+        <BoardEquityView 
+          isOpen={showBoardView} 
+          onClose={() => setShowBoardView(false)} 
+        />
+      ) : showFinancialSummary ? (
+        <MemberFinancialSummaryTable members={memberSummaries} />
       ) : (
         <MemberOverviewEnhanced
           members={memberSummaries}

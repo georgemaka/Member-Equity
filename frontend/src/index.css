@@ -5,6 +5,7 @@
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    font-size: clamp(14px, 1.2vw, 18px);
   }
   
   body {

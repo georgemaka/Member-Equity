@@ -260,7 +260,7 @@ export default function Members() {
   const pageSizeOptions = [10, 25, 50, 100]
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <div className="w-full max-w-none">
       {/* Header with gradient background */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-sukut-600 via-sukut-700 to-sukut-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>

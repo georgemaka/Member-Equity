@@ -4,26 +4,24 @@ import { MemberStatus } from '@/types/member'
 import BulkEditModal from '@/components/BulkEditModal'
 import UpdateStatusModal from '@/components/UpdateStatusModal'
 import CreateDistributionRequestModal from '@/components/CreateDistributionRequestModal'
+import TaxPaymentDetailModal from '@/components/TaxPaymentDetailModal'
+import DistributionDetailModal from '@/components/DistributionDetailModal'
+import YearEndAllocationDetailModal from '@/components/YearEndAllocationDetailModal'
 import PermissionGuard from '@/components/PermissionGuard'
 import {
   UserIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
-  CalendarDaysIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
-  ClockIcon,
   EyeIcon,
   PencilIcon,
-  TrashIcon,
-  ArrowPathIcon,
   DocumentArrowDownIcon,
   UserCircleIcon,
   DocumentCheckIcon,
   CheckCircleIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline'
 
 interface MemberOverviewEnhancedProps {
@@ -43,6 +41,10 @@ interface MemberRowProps {
   onEditMember: (member: MemberSummary) => void
   onUpdateStatus: (member: MemberSummary) => void
   onCreateDistribution: (member: MemberSummary) => void
+  onTaxPaymentClick: (memberId: string) => void
+  onDistributionClick: (memberId: string) => void
+  onYearEndAllocationClick: (memberId: string) => void
+  getYearEndAllocationData: (memberId: string) => any
 }
 
 const statusColors: Record<MemberStatus, string> = {
@@ -55,7 +57,7 @@ const statusColors: Record<MemberStatus, string> = {
   probationary: 'bg-orange-100 text-orange-800'
 }
 
-type SortField = 'name' | 'email' | 'joinDate' | 'service' | 'estimatedEquity' | 'finalEquity' | 'capital' | 'taxPayments' | 'distributions' | 'status'
+type SortField = 'name' | 'email' | 'joinDate' | 'service' | 'estimatedEquity' | 'finalEquity' | 'capital' | 'taxPayments' | 'distributions' | 'yearEndAllocation' | 'status'
 type SortDirection = 'asc' | 'desc'
 
 function MemberRow({ 
@@ -65,9 +67,15 @@ function MemberRow({
   isSelected,
   onEditMember,
   onUpdateStatus,
-  onCreateDistribution
+  onCreateDistribution,
+  onTaxPaymentClick,
+  onDistributionClick,
+  onYearEndAllocationClick,
+  getYearEndAllocationData
 }: MemberRowProps) {
+  const [showActionsMenu, setShowActionsMenu] = useState(false)
   const status = member.member.currentStatus?.status || 'active'
+  const yearEndData = getYearEndAllocationData(member.member.id)
   
   return (
     <tr className={`hover:bg-gray-50 transition-colors duration-150 ${isSelected ? 'bg-indigo-50' : ''}`}>
@@ -144,12 +152,41 @@ function MemberRow({
         ${member.currentCapitalBalance.toLocaleString()}
       </td>
       
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${member.totalTaxPaymentsThisYear.toLocaleString()}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <button
+          onClick={() => onTaxPaymentClick(member.member.id)}
+          className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
+          title="View tax payment details"
+        >
+          ${member.totalTaxPaymentsThisYear.toLocaleString()}
+        </button>
       </td>
       
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${member.totalDistributionsThisYear.toLocaleString()}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <button
+          onClick={() => onDistributionClick(member.member.id)}
+          className="text-sm text-green-600 hover:text-green-800 hover:underline font-medium transition-colors"
+          title="View distribution details"
+        >
+          ${member.totalDistributionsThisYear.toLocaleString()}
+        </button>
+      </td>
+      
+      <td className="px-6 py-4 whitespace-nowrap">
+        <button
+          onClick={() => onYearEndAllocationClick(member.member.id)}
+          className="text-sm text-purple-600 hover:text-purple-800 hover:underline font-medium transition-colors"
+          title="View year-end allocation details"
+        >
+          <div className="space-y-1">
+            <div className="font-semibold">
+              ${yearEndData.totalYearEndAllocation.toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-500">
+              Preferred + Profits
+            </div>
+          </div>
+        </button>
       </td>
       
       <td className="px-6 py-4 whitespace-nowrap">
@@ -159,39 +196,109 @@ function MemberRow({
       </td>
       
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <div className="flex items-center justify-end space-x-1">
+        <div className="flex items-center justify-end space-x-2">
+          {/* View Details Button */}
           <button
             onClick={() => onSelect(member.member.id)}
-            className="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition-colors"
-            title="View Details"
+            className="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-100 transition-colors"
+            title="View Member Details"
           >
-            <EyeIcon className="h-4 w-4" />
+            <EyeIcon className="h-4 w-4 mr-1" />
+            Details
           </button>
-          <PermissionGuard permission="members:write">
+
+          {/* Actions Dropdown */}
+          <div className="relative">
             <button
-              onClick={() => onEditMember(member)}
-              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-              title="Edit Member"
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="More Actions"
             >
-              <PencilIcon className="h-4 w-4" />
+              <EllipsisVerticalIcon className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => onUpdateStatus(member)}
-              className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
-              title="Update Status"
-            >
-              <UserCircleIcon className="h-4 w-4" />
-            </button>
-          </PermissionGuard>
-          <PermissionGuard resource="distributions">
-            <button
-              onClick={() => onCreateDistribution(member)}
-              className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors"
-              title="Create Distribution"
-            >
-              <DocumentCheckIcon className="h-4 w-4" />
-            </button>
-          </PermissionGuard>
+
+            {showActionsMenu && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowActionsMenu(false)}
+                />
+                
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  {/* Quick Actions */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                    Quick Actions
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      onTaxPaymentClick(member.member.id)
+                      setShowActionsMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center"
+                  >
+                    <CurrencyDollarIcon className="h-4 w-4 mr-3 text-blue-500" />
+                    View Tax Payments
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      onDistributionClick(member.member.id)
+                      setShowActionsMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 flex items-center"
+                  >
+                    <DocumentCheckIcon className="h-4 w-4 mr-3 text-green-500" />
+                    View Distributions
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      onYearEndAllocationClick(member.member.id)
+                      setShowActionsMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 flex items-center"
+                  >
+                    <ChartBarIcon className="h-4 w-4 mr-3 text-purple-500" />
+                    Year-End Allocation
+                  </button>
+
+                  {/* Member Management */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 mt-1">
+                    Member Management
+                  </div>
+                  
+                  <PermissionGuard permission="members:write">
+                    <button
+                      onClick={() => {
+                        onUpdateStatus(member)
+                        setShowActionsMenu(false)
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                    >
+                      <UserCircleIcon className="h-4 w-4 mr-3 text-gray-500" />
+                      Update Status
+                    </button>
+                  </PermissionGuard>
+                  
+                  <PermissionGuard resource="distributions">
+                    <button
+                      onClick={() => {
+                        onCreateDistribution(member)
+                        setShowActionsMenu(false)
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                    >
+                      <DocumentCheckIcon className="h-4 w-4 mr-3 text-gray-500" />
+                      Create Distribution
+                    </button>
+                  </PermissionGuard>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </td>
     </tr>
@@ -227,6 +334,61 @@ export default function MemberOverviewEnhanced({
   const [showDistributionModal, setShowDistributionModal] = useState(false)
   const [selectedMemberForAction, setSelectedMemberForAction] = useState<MemberSummary | null>(null)
   const [showGrouped, setShowGrouped] = useState(false)
+  
+  // Detail Modal States
+  const [showTaxPaymentModal, setShowTaxPaymentModal] = useState(false)
+  const [showDistributionDetailModal, setShowDistributionDetailModal] = useState(false)
+  const [showYearEndAllocationModal, setShowYearEndAllocationModal] = useState(false)
+  const [selectedMemberForModal, setSelectedMemberForModal] = useState<MemberSummary | null>(null)
+
+  // Modal functions - replace navigation with modal opening
+  const handleTaxPaymentClick = (memberId: string) => {
+    const member = members.find(m => m.member.id === memberId)
+    if (member) {
+      setSelectedMemberForModal(member)
+      setShowTaxPaymentModal(true)
+    }
+  }
+
+  const handleDistributionClick = (memberId: string) => {
+    const member = members.find(m => m.member.id === memberId)
+    if (member) {
+      setSelectedMemberForModal(member)
+      setShowDistributionDetailModal(true)
+    }
+  }
+
+  const handleYearEndAllocationClick = (memberId: string) => {
+    const member = members.find(m => m.member.id === memberId)
+    if (member) {
+      setSelectedMemberForModal(member)
+      setShowYearEndAllocationModal(true)
+    }
+  }
+
+  // Handle member change within modals (for navigation between members)
+  const handleModalMemberChange = (newMember: any) => {
+    const memberSummary = members.find(m => m.member.id === newMember.id)
+    if (memberSummary) {
+      setSelectedMemberForModal(memberSummary)
+    }
+  }
+
+  // Mock financial data for Year-End Allocation
+  const getYearEndAllocationData = (memberId: string) => {
+    // Use member ID hash for consistent data
+    const hash = memberId.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0)
+      return a & a
+    }, 0)
+    const baseAmount = Math.abs(hash % 50000) + 5000
+    
+    return {
+      preferredReturn: baseAmount * 0.08, // 8% preferred return
+      actualProfitsInterest: baseAmount * 0.04, // 4% actual profits
+      totalYearEndAllocation: baseAmount * 0.12 // Combined total
+    }
+  }
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -349,6 +511,10 @@ export default function MemberOverviewEnhanced({
       case 'distributions':
         aValue = a.totalDistributionsThisYear
         bValue = b.totalDistributionsThisYear
+        break
+      case 'yearEndAllocation':
+        aValue = getYearEndAllocationData(a.member.id).totalYearEndAllocation
+        bValue = getYearEndAllocationData(b.member.id).totalYearEndAllocation
         break
       case 'status':
         aValue = a.member.currentStatus?.status || 'active'
@@ -541,6 +707,17 @@ export default function MemberOverviewEnhanced({
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <button
+                    onClick={() => handleSort('yearEndAllocation')}
+                    className="flex items-center space-x-1 hover:text-gray-700"
+                  >
+                    <span>Year-End Allocation</span>
+                    {sortField === 'yearEndAllocation' && (
+                      sortDirection === 'asc' ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button
                     onClick={() => handleSort('status')}
                     className="flex items-center space-x-1 hover:text-gray-700"
                   >
@@ -572,6 +749,10 @@ export default function MemberOverviewEnhanced({
                     setSelectedMemberForAction(m)
                     setShowDistributionModal(true)
                   }}
+                  onTaxPaymentClick={handleTaxPaymentClick}
+                  onDistributionClick={handleDistributionClick}
+                  onYearEndAllocationClick={handleYearEndAllocationClick}
+                  getYearEndAllocationData={getYearEndAllocationData}
                 />
               ))}
             </tbody>
@@ -611,6 +792,40 @@ export default function MemberOverviewEnhanced({
           />
         </>
       )}
+
+      {/* Detail Modals */}
+      <TaxPaymentDetailModal
+        isOpen={showTaxPaymentModal}
+        onClose={() => {
+          setShowTaxPaymentModal(false)
+          setSelectedMemberForModal(null)
+        }}
+        member={selectedMemberForModal?.member || null}
+        allMembers={members.map(m => m.member)}
+        onMemberChange={handleModalMemberChange}
+      />
+
+      <DistributionDetailModal
+        isOpen={showDistributionDetailModal}
+        onClose={() => {
+          setShowDistributionDetailModal(false)
+          setSelectedMemberForModal(null)
+        }}
+        member={selectedMemberForModal?.member || null}
+        allMembers={members.map(m => m.member)}
+        onMemberChange={handleModalMemberChange}
+      />
+
+      <YearEndAllocationDetailModal
+        isOpen={showYearEndAllocationModal}
+        onClose={() => {
+          setShowYearEndAllocationModal(false)
+          setSelectedMemberForModal(null)
+        }}
+        member={selectedMemberForModal?.member || null}
+        allMembers={members.map(m => m.member)}
+        onMemberChange={handleModalMemberChange}
+      />
     </div>
   )
 }

@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { memberApi } from '@/services/memberApi'
-import { Member, MemberYearlyEquity, BulkEquityUpdateDto } from '@/types/member'
+import { Member, BulkEquityUpdateDto } from '@/types/member'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useMockMembersData } from '@/hooks/useMockMembersData'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { 
-  CheckCircleIcon, 
   PencilIcon, 
   CheckIcon,
   XMarkIcon,
-  ClockIcon,
   UsersIcon
 } from '@heroicons/react/24/outline'
 
@@ -30,29 +28,27 @@ interface MemberEquityUpdate {
 export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProps) {
   const { currentFiscalYear } = useFiscalYear()
   const { success, error: showError } = useToast()
-  const queryClient = useQueryClient()
   
   const [memberUpdates, setMemberUpdates] = useState<Record<string, MemberEquityUpdate>>({})
   const [bulkUpdateReason, setBulkUpdateReason] = useState('')
-  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false)
 
-  const { data: membersData, isLoading } = useQuery({
-    queryKey: ['members', 'board-view', currentFiscalYear],
-    queryFn: () => memberApi.getMembersForYear(currentFiscalYear),
-    enabled: isOpen
-  })
+  // Use mock data instead of API call
+  const { data: membersData, isLoading } = useMockMembersData(1, 100)
 
-  const bulkUpdateMutation = useMutation({
-    mutationFn: (data: BulkEquityUpdateDto) => memberApi.bulkUpdateEquity(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['members'] })
+  // Add ESC key handling
+  useEscapeKey(onClose, isOpen)
+
+  // Mock bulk update function
+  const submitBulkUpdate = async (_data: BulkEquityUpdateDto) => {
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
       success('Equity Updated', 'Member equity percentages updated successfully')
       resetUpdates()
-    },
-    onError: (error) => {
-      showError('Update Failed', error.message)
+    } catch (error) {
+      showError('Update Failed', 'Failed to update member equity')
     }
-  })
+  }
 
   useEffect(() => {
     if (membersData?.data) {
@@ -114,36 +110,6 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
   const resetUpdates = () => {
     setMemberUpdates({})
     setBulkUpdateReason('')
-    setShowFinalizeConfirm(false)
-  }
-
-  const handleBulkUpdate = () => {
-    const changedUpdates = Object.values(memberUpdates)
-      .filter(update => update.hasChanges)
-      .map(update => ({
-        memberId: update.memberId,
-        estimatedPercentage: update.estimatedPercentage,
-        finalPercentage: update.finalPercentage,
-        capitalBalance: update.capitalBalance
-      }))
-
-    if (changedUpdates.length === 0) {
-      showError('No Changes', 'No equity changes to save')
-      return
-    }
-
-    if (!bulkUpdateReason.trim()) {
-      showError('Reason Required', 'Please provide a reason for the equity changes')
-      return
-    }
-
-    const bulkUpdate: BulkEquityUpdateDto = {
-      updates: changedUpdates,
-      fiscalYear: currentFiscalYear,
-      reason: bulkUpdateReason.trim()
-    }
-
-    bulkUpdateMutation.mutate(bulkUpdate)
   }
 
   const hasAnyChanges = Object.values(memberUpdates).some(update => update.hasChanges)
@@ -245,7 +211,7 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
                               </div>
                               {update.hasChanges && (
                                 <div className="ml-2">
-                                  <ClockIcon className="h-4 w-4 text-orange-500" />
+                                  <PencilIcon className="h-4 w-4 text-orange-500" />
                                 </div>
                               )}
                             </div>
@@ -368,11 +334,22 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
                         Cancel All Changes
                       </button>
                       <button
-                        onClick={handleBulkUpdate}
-                        disabled={bulkUpdateMutation.isLoading || !bulkUpdateReason.trim()}
+                        onClick={() => submitBulkUpdate({
+                          updates: Object.values(memberUpdates)
+                            .filter(u => u.hasChanges)
+                            .map(u => ({
+                              memberId: u.memberId,
+                              estimatedPercentage: u.estimatedPercentage,
+                              finalPercentage: u.finalPercentage,
+                              capitalBalance: u.capitalBalance
+                            })),
+                          reason: bulkUpdateReason,
+                          fiscalYear: currentFiscalYear
+                        })}
+                        disabled={!bulkUpdateReason.trim()}
                         className="px-4 py-2 text-sm font-medium text-white bg-sukut-600 border border-transparent rounded-md hover:bg-sukut-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {bulkUpdateMutation.isLoading ? 'Saving...' : `Save ${Object.values(memberUpdates).filter(u => u.hasChanges).length} Changes`}
+                        Save {Object.values(memberUpdates).filter(u => u.hasChanges).length} Changes
                       </button>
                     </div>
                   </div>

@@ -5,9 +5,10 @@ import LoadingSpinner from './LoadingSpinner'
 
 interface LayoutProps {
   children: ReactNode
+  fullWidth?: boolean
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, fullWidth = false }: LayoutProps) {
   const { isLoading, isAuthenticated, loginWithRedirect } = useMockAuth()
 
   if (isLoading) {
@@ -45,7 +46,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Navigation />
-      <main className="flex-1 p-6">
+      <main className={`flex-1 ${fullWidth ? 'p-2 sm:p-3 lg:p-4' : 'p-4 sm:p-6 lg:p-8 xl:p-10 2xl:p-12'}`}>
         {children}
       </main>
     </div>

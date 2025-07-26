@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class EquityService {
@@ -19,17 +20,19 @@ export class EquityService {
     });
 
     const totalEquity = members.reduce(
-      (sum, member) => sum + Number(member.equityPercentage),
-      0,
+      (sum, member) => sum.plus(new Decimal(member.equityPercentage.toString())),
+      new Decimal(0),
     );
 
+    const availableEquity = new Decimal(100).minus(totalEquity);
+
     return {
-      totalAllocated: totalEquity,
-      availableEquity: 100 - totalEquity,
+      totalAllocated: totalEquity.toFixed(4),
+      availableEquity: availableEquity.toFixed(4),
       memberCount: members.length,
       members: members.map(member => ({
         ...member,
-        equityPercentage: Number(member.equityPercentage),
+        equityPercentage: new Decimal(member.equityPercentage.toString()).toFixed(4),
       })),
     };
   }

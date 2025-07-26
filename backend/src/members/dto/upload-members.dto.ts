@@ -7,7 +7,8 @@ export class UploadMembersDto {
     format: 'binary',
     description: 'Excel file containing member data'
   })
-  file: Express.Multer.File;
+  @IsOptional()
+  file?: Express.Multer.File;
 
   @ApiProperty({ 
     example: false, 

@@ -81,15 +81,15 @@ export class EventReplayService {
     // Create a generic domain event for replay
     return new (class extends DomainEvent {
       constructor() {
-        super(
-          eventData.aggregateId,
-          eventData.aggregateType,
-          eventData.eventType,
-          eventData.eventVersion,
-          eventData.metadata,
-        );
+        super({
+          aggregateId: eventData.aggregateId,
+          aggregateType: eventData.aggregateType,
+          eventType: eventData.eventType,
+          eventVersion: eventData.eventVersion,
+          metadata: eventData.metadata,
+        });
         // Override timestamp with stored timestamp
-        (this as any).timestamp = eventData.timestamp;
+        (this as any).timestamp = new Date(eventData.timestamp);
       }
 
       getEventData() {
@@ -109,5 +109,53 @@ export class EventReplayService {
     );
 
     return stateBuilder(events);
+  }
+
+  async rebuildMemberProjection(memberId: string): Promise<any> {
+    const events = await this.eventStore.getEventsForAggregate(memberId, 'Member');
+    
+    let state = {
+      id: memberId,
+      equityPercentage: '0',
+      status: 'ACTIVE',
+    };
+
+    for (const event of events) {
+      switch (event.eventType) {
+        case 'MemberCreated':
+          state = {
+            ...state,
+            ...(event.eventData as any),
+          };
+          break;
+        case 'MemberEquityChanged':
+          state.equityPercentage = (event.eventData as any).newPercentage;
+          break;
+        case 'MemberRetired':
+          state.status = 'RETIRED';
+          state.equityPercentage = '0';
+          break;
+      }
+    }
+
+    return state;
+  }
+
+  async auditTrailForAggregate(
+    aggregateId: string,
+    aggregateType: string,
+  ): Promise<any[]> {
+    const events = await this.eventStore.getEventsForAggregate(
+      aggregateId,
+      aggregateType,
+    );
+
+    return events.map(event => ({
+      eventType: event.eventType,
+      timestamp: event.timestamp,
+      data: event.eventData,
+      metadata: event.metadata,
+      sequence: event.sequence,
+    }));
   }
 }

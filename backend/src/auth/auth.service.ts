@@ -6,10 +6,15 @@ import * as bcrypt from 'bcrypt';
 export interface JwtPayload {
   sub: string;
   email: string;
-  role: string;
+  role?: string;
   memberId?: string;
+  companyId?: string;
+  permissions?: string[];
   iat?: number;
   exp?: number;
+  // Auth0 custom claims
+  'https://api.example.com/companyId'?: string;
+  'https://api.example.com/role'?: string;
 }
 
 export interface AuthUser {

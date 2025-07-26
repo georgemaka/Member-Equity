@@ -18,7 +18,13 @@ export class DistributionCalculatedEvent extends DomainEvent {
     },
     metadata: Record<string, any> = {},
   ) {
-    super(distributionId, 'Distribution', 'DistributionCalculated', 1, metadata);
+    super({
+      aggregateId: distributionId,
+      aggregateType: 'Distribution',
+      eventType: 'DistributionCalculated',
+      eventVersion: 1,
+      metadata: { ...metadata, companyId: data.companyId },
+    });
   }
 
   getEventData() {
@@ -47,7 +53,13 @@ export class DistributionApprovedEvent extends DomainEvent {
     },
     metadata: Record<string, any> = {},
   ) {
-    super(distributionId, 'Distribution', 'DistributionApproved', 1, metadata);
+    super({
+      aggregateId: distributionId,
+      aggregateType: 'Distribution',
+      eventType: 'DistributionApproved',
+      eventVersion: 1,
+      metadata,
+    });
   }
 
   getEventData() {
@@ -72,7 +84,13 @@ export class PaymentProcessedEvent extends DomainEvent {
     },
     metadata: Record<string, any> = {},
   ) {
-    super(memberDistributionId, 'MemberDistribution', 'PaymentProcessed', 1, metadata);
+    super({
+      aggregateId: memberDistributionId,
+      aggregateType: 'MemberDistribution',
+      eventType: 'PaymentProcessed',
+      eventVersion: 1,
+      metadata,
+    });
   }
 
   getEventData() {

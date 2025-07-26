@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EventBusService } from '../events/event-bus.service';
 import { MemberCreatedEvent, MemberEquityChangedEvent, MemberRetiredEvent } from '../events/domain-events';
@@ -24,6 +24,16 @@ export class MembersService {
       throw new ConflictException('Member with this email already exists');
     }
 
+    // Validate equity total won't exceed 100%
+    const currentTotal = await this.getCurrentEquityTotal(companyId);
+    const newTotal = currentTotal.plus(new Decimal(createMemberDto.equityPercentage));
+    
+    if (newTotal.greaterThan(100)) {
+      throw new BadRequestException(
+        `Cannot add member: total equity would be ${newTotal.toFixed(2)}% (current: ${currentTotal.toFixed(2)}%, adding: ${createMemberDto.equityPercentage}%)`
+      );
+    }
+
     // Create member and equity event in transaction
     const result = await this.prisma.$transaction(async (tx) => {
       const member = await tx.member.create({
@@ -31,8 +41,8 @@ export class MembersService {
           ...createMemberDto,
           companyId,
           joinDate: new Date(createMemberDto.joinDate),
-          equityPercentage: createMemberDto.equityPercentage,
-          taxWithholdingPercentage: createMemberDto.taxWithholdingPercentage,
+          equityPercentage: new Decimal(createMemberDto.equityPercentage),
+          taxWithholdingPercentage: new Decimal(createMemberDto.taxWithholdingPercentage || 0),
         },
       });
 
@@ -41,7 +51,7 @@ export class MembersService {
         data: {
           memberId: member.id,
           eventType: 'INITIAL_GRANT',
-          newPercentage: createMemberDto.equityPercentage,
+          newPercentage: new Decimal(createMemberDto.equityPercentage),
           effectiveDate: new Date(createMemberDto.joinDate),
           reason: 'Initial equity grant',
         },
@@ -57,7 +67,7 @@ export class MembersService {
         firstName: createMemberDto.firstName,
         lastName: createMemberDto.lastName,
         email: createMemberDto.email,
-        equityPercentage: createMemberDto.equityPercentage,
+        equityPercentage: new Decimal(createMemberDto.equityPercentage).toNumber(),
         joinDate: new Date(createMemberDto.joinDate),
       }),
     );
@@ -141,6 +151,17 @@ export class MembersService {
 
     if (!member) {
       throw new NotFoundException('Member not found');
+    }
+
+    // Validate new equity total won't exceed 100%
+    const currentTotal = await this.getCurrentEquityTotal(member.companyId);
+    const memberCurrent = new Decimal(member.equityPercentage.toString());
+    const newTotal = currentTotal.minus(memberCurrent).plus(new Decimal(updateEquityDto.newPercentage));
+    
+    if (newTotal.greaterThan(100)) {
+      throw new BadRequestException(
+        `Cannot update equity: total would be ${newTotal.toFixed(2)}%`
+      );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -256,5 +277,38 @@ export class MembersService {
       where,
       orderBy: { effectiveDate: 'desc' },
     });
+  }
+
+  private async getCurrentEquityTotal(companyId: string): Promise<Decimal> {
+    const members = await this.prisma.member.findMany({
+      where: {
+        companyId,
+        status: 'ACTIVE',
+      },
+      select: {
+        equityPercentage: true,
+      },
+    });
+
+    return members.reduce(
+      (total, member) => total.plus(new Decimal(member.equityPercentage.toString())),
+      new Decimal(0)
+    );
+  }
+
+  async validateEquityTotal(companyId: string): Promise<{ isValid: boolean; total: string; members: number }> {
+    const total = await this.getCurrentEquityTotal(companyId);
+    const memberCount = await this.prisma.member.count({
+      where: {
+        companyId,
+        status: 'ACTIVE',
+      },
+    });
+
+    return {
+      isValid: total.equals(100),
+      total: total.toFixed(4),
+      members: memberCount,
+    };
   }
 }

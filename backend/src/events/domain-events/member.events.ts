@@ -9,12 +9,18 @@ export class MemberCreatedEvent extends DomainEvent {
       firstName: string;
       lastName: string;
       email: string;
-      equityPercentage: Decimal;
+      equityPercentage: Decimal | number;
       joinDate: Date;
     },
     metadata: Record<string, any> = {},
   ) {
-    super(memberId, 'Member', 'MemberCreated', 1, metadata);
+    super({
+      aggregateId: memberId,
+      aggregateType: 'Member',
+      eventType: 'MemberCreated',
+      eventVersion: 1,
+      metadata: { ...metadata, companyId: data.companyId },
+    });
   }
 
   getEventData() {
@@ -23,7 +29,9 @@ export class MemberCreatedEvent extends DomainEvent {
       firstName: this.data.firstName,
       lastName: this.data.lastName,
       email: this.data.email,
-      equityPercentage: this.data.equityPercentage.toString(),
+      equityPercentage: this.data.equityPercentage instanceof Decimal 
+        ? this.data.equityPercentage.toString() 
+        : new Decimal(this.data.equityPercentage).toString(),
       joinDate: this.data.joinDate.toISOString(),
     };
   }
@@ -34,13 +42,19 @@ export class MemberEquityChangedEvent extends DomainEvent {
     public readonly memberId: string,
     public readonly data: {
       previousPercentage: Decimal;
-      newPercentage: Decimal;
+      newPercentage: Decimal | number;
       effectiveDate: Date;
       reason: string;
     },
     metadata: Record<string, any> = {},
   ) {
-    super(memberId, 'Member', 'MemberEquityChanged', 1, metadata);
+    super({
+      aggregateId: memberId,
+      aggregateType: 'Member',
+      eventType: 'MemberEquityChanged',
+      eventVersion: 1,
+      metadata,
+    });
   }
 
   getEventData() {
@@ -63,7 +77,13 @@ export class MemberRetiredEvent extends DomainEvent {
     },
     metadata: Record<string, any> = {},
   ) {
-    super(memberId, 'Member', 'MemberRetired', 1, metadata);
+    super({
+      aggregateId: memberId,
+      aggregateType: 'Member',
+      eventType: 'MemberRetired',
+      eventVersion: 1,
+      metadata,
+    });
   }
 
   getEventData() {

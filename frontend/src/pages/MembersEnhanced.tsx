@@ -2,12 +2,16 @@ import { useState, useMemo } from 'react'
 import { Member } from '@/types/member'
 import { MemberSummary } from '@/types/dashboard'
 import { useToast } from '@/contexts/ToastContext'
-import { useMockMembersData } from '@/hooks/useMockMembersData'
+import { useMembers, useCreateMember, useUpdateMember, useUpdateEquity, useRetireMember, useUploadMembers } from '@/hooks/useMembers'
 import MemberOverviewEnhanced from '@/components/dashboard/MemberOverviewEnhanced'
 import AddMemberModal from '@/components/AddMemberModal'
 import ExcelUploadModal from '@/components/ExcelUploadModal'
 import BoardEquityView from '@/components/BoardEquityView'
 import PermissionGuard from '@/components/PermissionGuard'
+import LoadingSpinner from '@/components/LoadingSpinner'
+import ErrorMessage from '@/components/ErrorMessage'
+import PageHeader from '@/components/PageHeader'
+import YearOverYearComparison from '@/components/YearOverYearComparison'
 import { 
   PlusIcon, 
   ArrowUpTrayIcon, 
@@ -294,10 +298,18 @@ export default function MembersEnhanced() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showBoardView, setShowBoardView] = useState(false)
   const [showFinancialSummary, setShowFinancialSummary] = useState(false)
+  const [showYearOverYear, setShowYearOverYear] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   
-  const { success } = useToast()
-  const { data: membersData, isLoading, error } = useMockMembersData(1, 100) // Get all members
+  const { showToast } = useToast()
+  
+  // API hooks
+  const { data: membersData, isLoading, error } = useMembers()
+  const createMember = useCreateMember()
+  const updateMember = useUpdateMember()
+  const updateEquity = useUpdateEquity()
+  const retireMember = useRetireMember()
+  const uploadMembers = useUploadMembers()
 
   // Convert Member data to MemberSummary format
   const memberSummaries = useMemo(() => {
@@ -313,7 +325,7 @@ export default function MembersEnhanced() {
   }
 
   const handleMemberCompare = (memberIds: string[]) => {
-    success('Member Comparison', `Comparing ${memberIds.length} members`)
+    showToast(`Comparing ${memberIds.length} members`, 'info')
   }
 
   const handleAddMember = () => {
@@ -349,7 +361,7 @@ export default function MembersEnhanced() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      success('Export Complete', 'Members data exported successfully')
+      showToast('Members data exported successfully', 'success')
     } catch (error) {
       console.error('Export failed:', error)
     }
@@ -374,28 +386,28 @@ export default function MembersEnhanced() {
     }
   }, [memberSummaries])
 
+  if (isLoading) {
+    return <LoadingSpinner />
+  }
+
   if (error) {
     return (
-      <div className="w-full">
-        <div className="text-center py-12">
-          <p className="text-sm text-red-600">Failed to load members: {(error as Error).message}</p>
-        </div>
-      </div>
+      <ErrorMessage 
+        title="Failed to load members"
+        message={(error as Error).message || 'An unexpected error occurred'}
+      />
     )
   }
 
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Members</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Manage member information, equity allocations, and view detailed member profiles
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
+      <PageHeader
+        title="Members"
+        description="Manage member information, equity allocations, and view detailed member profiles"
+        showFiscalYear={true}
+      >
+        <div className="flex items-center space-x-3">
             <button
               onClick={handleExport}
               className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sukut-500 transition-colors flex items-center"
@@ -413,6 +425,17 @@ export default function MembersEnhanced() {
             >
               <CurrencyDollarIcon className="h-4 w-4 mr-2" />
               Financial Summary
+            </button>
+            <button
+              onClick={() => setShowYearOverYear(!showYearOverYear)}
+              className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors flex items-center ${
+                showYearOverYear 
+                  ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <ChartBarIcon className="h-4 w-4 mr-2" />
+              Year-over-Year
             </button>
             <button
               onClick={() => setShowBoardView(!showBoardView)}
@@ -442,8 +465,7 @@ export default function MembersEnhanced() {
               </button>
             </PermissionGuard>
           </div>
-        </div>
-      </div>
+      </PageHeader>
 
       {/* Summary Cards */}
       {summaryMetrics && (
@@ -529,6 +551,13 @@ export default function MembersEnhanced() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Year-over-Year Comparison */}
+      {showYearOverYear && (
+        <div className="mb-8">
+          <YearOverYearComparison members={memberSummaries} />
         </div>
       )}
 

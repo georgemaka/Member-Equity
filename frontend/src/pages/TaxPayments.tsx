@@ -3,6 +3,7 @@ import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useMockTaxPaymentsData, PaymentType, PAYMENT_TYPE_LABELS } from '@/hooks/useMockTaxPaymentsData'
 import PageContainer from '@/components/PageContainer'
+import FiscalYearSelectorCompact from '@/components/FiscalYearSelectorCompact'
 import { 
   CurrencyDollarIcon,
   CalendarDaysIcon,
@@ -18,7 +19,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function TaxPayments() {
-  const { currentFiscalYear } = useFiscalYear()
+  const { currentFiscalYear, availableYears } = useFiscalYear()
   const { success, error: showError } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -114,7 +115,12 @@ export default function TaxPayments() {
                 Track quarterly estimated tax payments for members in FY {currentFiscalYear}
               </p>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
+            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center space-x-2">
+              {/* Fiscal Year Selector */}
+              <div className="bg-white/10 backdrop-blur rounded-lg px-3 py-1">
+                <FiscalYearSelectorCompact className="text-white" />
+              </div>
+              
               <button
                 onClick={handleExport}
                 className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
@@ -152,14 +158,11 @@ export default function TaxPayments() {
             onChange={(e) => setSelectedTaxYear(Number(e.target.value))}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           >
-            {Array.from({ length: 5 }, (_, i) => {
-              const year = new Date().getFullYear() - i
-              return (
-                <option key={year} value={year}>
-                  Tax Year {year}
-                </option>
-              )
-            })}
+            {availableYears.slice(0, 5).map(year => (
+              <option key={year} value={year}>
+                Tax Year {year}
+              </option>
+            ))}
           </select>
         </div>
 

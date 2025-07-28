@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
 import PageContainer from '@/components/PageContainer'
+import FiscalYearSelectorCompact from '@/components/FiscalYearSelectorCompact'
 import { 
   useMockCompanyFinancials,
   useMockAllocationPreview,
@@ -61,7 +62,7 @@ type AllocationStep = 'setup' | 'preview' | 'allocate' | 'reconcile' | 'complete
 const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444']
 
 export default function YearEndAllocation() {
-  const { currentFiscalYear } = useFiscalYear()
+  const { currentFiscalYear, availableYears } = useFiscalYear()
   const { success, error: showError, warning, info } = useToast()
   
   const [currentStep, setCurrentStep] = useState<AllocationStep>('setup')
@@ -80,6 +81,7 @@ export default function YearEndAllocation() {
   const [showBulkAdjustments, setShowBulkAdjustments] = useState(false)
   const [selectedMembersForAdjustment, setSelectedMembersForAdjustment] = useState<Set<string>>(new Set())
   const [adjustmentPercentage, setAdjustmentPercentage] = useState('')
+  const [comparisonYear, setComparisonYear] = useState<number>(currentFiscalYear - 1)
 
   // Fetch mock data
   const { data: existingFinancials, isLoading: loadingFinancials } = useMockCompanyFinancials(currentFiscalYear)
@@ -381,7 +383,12 @@ export default function YearEndAllocation() {
                 FY {currentFiscalYear} Net Income Allocation Process
               </p>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
+            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center space-x-2">
+              {/* Fiscal Year Selector for current page */}
+              <div className="bg-white/10 backdrop-blur rounded-lg px-3 py-1">
+                <FiscalYearSelectorCompact className="text-white" />
+              </div>
+              
               {currentStep === 'complete' && (
                 <button
                   onClick={handleExportAllocation}
@@ -406,9 +413,23 @@ export default function YearEndAllocation() {
       {/* Historical Comparison Panel */}
       {showHistoricalComparison && historicalFinancials.length > 0 && (
         <div className="bg-white shadow-xl rounded-xl border border-gray-100 mb-8 p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Historical Comparison</h3>
-            <p className="text-sm text-gray-600">Net income and allocation trends over the past 5 years</p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Historical Comparison</h3>
+              <p className="text-sm text-gray-600">Net income and allocation trends over the past 5 years</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Compare with:</span>
+              <select
+                value={comparisonYear}
+                onChange={(e) => setComparisonYear(Number(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {availableYears.filter(year => year !== currentFiscalYear).map(year => (
+                  <option key={year} value={year}>FY {year}</option>
+                ))}
+              </select>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

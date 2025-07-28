@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useMockAuth } from '@/contexts/MockAuthContext'
-import FiscalYearSelector from './FiscalYearSelector'
 import RoleSwitcher from './RoleSwitcher'
 import PermissionGuard from './PermissionGuard'
 import { 
@@ -81,11 +80,10 @@ export default function Navigation() {
   return (
     <nav className="bg-white shadow-lg w-64 min-h-screen">
       <div className="p-6">
-        <div className="mb-8">
-          <span className="text-xl font-bold text-sukut-700">
-            Sukut Construction
+        <div className="mb-6">
+          <span className="text-lg font-semibold text-gray-900">
+            Member Equity Management
           </span>
-          <p className="text-sm text-gray-500 mt-1">Member Equity Management</p>
         </div>
 
         <div className="space-y-2">
@@ -127,14 +125,6 @@ export default function Navigation() {
             Current Role
           </p>
           <RoleSwitcher />
-        </div>
-
-        {/* Fiscal Year Selector */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Fiscal Year
-          </p>
-          <FiscalYearSelector />
         </div>
 
         <div className="mt-auto pt-8 border-t border-gray-200">

@@ -1,6 +1,8 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import { useMockAuth } from '@/contexts/MockAuthContext'
 import Navigation from './Navigation'
+import GlobalHeader from './GlobalHeader'
+import MobileNavigationDrawer from './MobileNavigationDrawer'
 import LoadingSpinner from './LoadingSpinner'
 
 interface LayoutProps {
@@ -10,6 +12,7 @@ interface LayoutProps {
 
 export default function Layout({ children, fullWidth = false }: LayoutProps) {
   const { isLoading, isAuthenticated, loginWithRedirect } = useMockAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   if (isLoading) {
     return <LoadingSpinner />
@@ -44,11 +47,27 @@ export default function Layout({ children, fullWidth = false }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Navigation />
-      <main className={`flex-1 overflow-x-hidden ${fullWidth ? 'p-2 sm:p-3 lg:p-4' : 'p-4 sm:p-6 lg:p-8 xl:p-10 2xl:p-12'}`}>
-        {children}
-      </main>
+    <div className="min-h-screen bg-gray-50">
+      {/* Global Header */}
+      <GlobalHeader onMenuClick={() => setMobileMenuOpen(true)} />
+      
+      <div className="flex">
+        {/* Desktop Navigation */}
+        <div className="hidden lg:block">
+          <Navigation />
+        </div>
+        
+        {/* Mobile Navigation Drawer */}
+        <MobileNavigationDrawer 
+          open={mobileMenuOpen} 
+          onClose={() => setMobileMenuOpen(false)} 
+        />
+        
+        {/* Main Content */}
+        <main className={`flex-1 overflow-x-hidden ${fullWidth ? 'p-2 sm:p-3 lg:p-4' : 'p-4 sm:p-6 lg:p-8 xl:p-10 2xl:p-12'}`}>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
 import PermissionGuard from '@/components/PermissionGuard'
 import PageContainer from '@/components/PageContainer'
+import FiscalYearSelectorCompact from '@/components/FiscalYearSelectorCompact'
 import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
@@ -44,8 +45,11 @@ export default function Analytics() {
   const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'year'>('year')
   const [selectedMetric, setSelectedMetric] = useState<'equity' | 'distributions' | 'tax'>('equity')
   const [showExportModal, setShowExportModal] = useState(false)
+  const [compareMode, setCompareMode] = useState(false)
+  const [comparisonStartYear, setComparisonStartYear] = useState<number>(new Date().getFullYear() - 3)
+  const [comparisonEndYear, setComparisonEndYear] = useState<number>(new Date().getFullYear())
   
-  const { currentFiscalYear } = useFiscalYear()
+  const { currentFiscalYear, availableYears } = useFiscalYear()
   const { success } = useToast()
   
   // Get data
@@ -223,16 +227,58 @@ export default function Analytics() {
                 Comprehensive analytics and reporting for fiscal year {currentFiscalYear}
               </p>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value as 'month' | 'quarter' | 'year')}
-                className="px-3 py-2 border border-white/20 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center space-x-2">
+              {/* Date Range Toggle */}
+              <button
+                onClick={() => setCompareMode(!compareMode)}
+                className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                  compareMode 
+                    ? 'bg-white text-purple-700 border-white' 
+                    : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                }`}
               >
-                <option value="month" className="text-gray-900">This Month</option>
-                <option value="quarter" className="text-gray-900">This Quarter</option>
-                <option value="year" className="text-gray-900">This Year</option>
-              </select>
+                {compareMode ? 'Single Year' : 'Compare Years'}
+              </button>
+              
+              {compareMode ? (
+                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur rounded-lg px-3 py-1">
+                  <select
+                    value={comparisonStartYear}
+                    onChange={(e) => setComparisonStartYear(Number(e.target.value))}
+                    className="px-2 py-1 border border-white/20 rounded bg-transparent text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    {availableYears.map(year => (
+                      <option key={year} value={year} className="text-gray-900">FY {year}</option>
+                    ))}
+                  </select>
+                  <span className="text-white text-sm">to</span>
+                  <select
+                    value={comparisonEndYear}
+                    onChange={(e) => setComparisonEndYear(Number(e.target.value))}
+                    className="px-2 py-1 border border-white/20 rounded bg-transparent text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    {availableYears.filter(year => year >= comparisonStartYear).map(year => (
+                      <option key={year} value={year} className="text-gray-900">FY {year}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-white/10 backdrop-blur rounded-lg px-3 py-1">
+                    <FiscalYearSelectorCompact className="text-white" showLabel={false} />
+                  </div>
+                  <select
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value as 'month' | 'quarter' | 'year')}
+                    className="px-3 py-2 border border-white/20 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    <option value="month" className="text-gray-900">This Month</option>
+                    <option value="quarter" className="text-gray-900">This Quarter</option>
+                    <option value="year" className="text-gray-900">This Year</option>
+                  </select>
+                </>
+              )}
+              
               <PermissionGuard permission="analytics:export" fallback={null}>
                 <button
                   onClick={() => setShowExportModal(true)}

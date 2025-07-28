@@ -10,12 +10,13 @@ import ExcelUploadModal from '@/components/ExcelUploadModal'
 import BoardEquityView from '@/components/BoardEquityView'
 import MemberDetailsModal from '@/components/MemberDetailsModal'
 import EquityUpdateWizard from '@/components/equity/EquityUpdateWizard'
+import YearOverYearComparison from '@/components/YearOverYearComparison'
 import PermissionGuard from '@/components/PermissionGuard'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import ErrorMessage from '@/components/ErrorMessage'
 import PageHeader from '@/components/PageHeader'
-import YearOverYearComparison from '@/components/YearOverYearComparison'
 import PageContainer from '@/components/PageContainer'
+import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { 
   PlusIcon, 
   ArrowUpTrayIcon, 
@@ -26,7 +27,8 @@ import {
   DocumentCheckIcon,
   CurrencyDollarIcon,
   TableCellsIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  CalendarDaysIcon
 } from '@heroicons/react/24/outline'
 
 // Adapter function to convert Member to MemberSummary
@@ -310,6 +312,7 @@ export default function MembersEnhanced() {
   const [editingMember, setEditingMember] = useState<Member | null>(null)
   
   const { showToast } = useToast()
+  const { currentFiscalYear, setCurrentFiscalYear, availableYears } = useFiscalYear()
   
   // API hooks
   const { data: membersData, isLoading, error } = useMembers()
@@ -487,39 +490,39 @@ export default function MembersEnhanced() {
           </div>
       </PageHeader>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Compact */}
       {summaryMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-            <div className="p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-gradient-to-r from-sukut-500 to-sukut-600 rounded-lg flex items-center justify-center">
-                    <UsersIcon className="h-6 w-6 text-white" />
+                  <div className="w-8 h-8 bg-gradient-to-r from-sukut-500 to-sukut-600 rounded-md flex items-center justify-center">
+                    <UsersIcon className="h-5 w-5 text-white" />
                   </div>
                 </div>
-                <div className="ml-4 w-0 flex-1">
+                <div className="ml-3 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Members</dt>
-                    <dd className="text-2xl font-bold text-gray-900">{summaryMetrics.totalMembers}</dd>
+                    <dt className="text-xs font-medium text-gray-500 truncate">Total Members</dt>
+                    <dd className="text-xl font-bold text-gray-900">{summaryMetrics.totalMembers}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-            <div className="p-6">
+          <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <ChartBarIcon className="h-6 w-6 text-white" />
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-md flex items-center justify-center">
+                    <ChartBarIcon className="h-5 w-5 text-white" />
                   </div>
                 </div>
-                <div className="ml-4 w-0 flex-1">
+                <div className="ml-3 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Estimated Equity</dt>
-                    <dd className="text-2xl font-bold text-gray-900">
+                    <dt className="text-xs font-medium text-gray-500 truncate">Estimated Equity</dt>
+                    <dd className="text-xl font-bold text-gray-900">
                       {summaryMetrics.totalEstimatedEquity < 1 
                         ? summaryMetrics.totalEstimatedEquity.toFixed(3).replace(/\.?0+$/, '')
                         : summaryMetrics.totalEstimatedEquity.toFixed(2).replace(/\.?0+$/, '')
@@ -531,18 +534,18 @@ export default function MembersEnhanced() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-            <div className="p-6">
+          <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <DocumentCheckIcon className="h-6 w-6 text-white" />
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-md flex items-center justify-center">
+                    <DocumentCheckIcon className="h-5 w-5 text-white" />
                   </div>
                 </div>
-                <div className="ml-4 w-0 flex-1">
+                <div className="ml-3 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Final Equity</dt>
-                    <dd className="text-2xl font-bold text-gray-900">
+                    <dt className="text-xs font-medium text-gray-500 truncate">Final Equity</dt>
+                    <dd className="text-xl font-bold text-gray-900">
                       {summaryMetrics.totalFinalEquity < 1 
                         ? summaryMetrics.totalFinalEquity.toFixed(3).replace(/\.?0+$/, '')
                         : summaryMetrics.totalFinalEquity.toFixed(2).replace(/\.?0+$/, '')
@@ -554,18 +557,18 @@ export default function MembersEnhanced() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-            <div className="p-6">
+          <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">$</span>
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-md flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">$</span>
                   </div>
                 </div>
-                <div className="ml-4 w-0 flex-1">
+                <div className="ml-3 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Capital</dt>
-                    <dd className="text-2xl font-bold text-gray-900">${summaryMetrics.totalCapital.toLocaleString()}</dd>
+                    <dt className="text-xs font-medium text-gray-500 truncate">Total Capital</dt>
+                    <dd className="text-xl font-bold text-gray-900">${summaryMetrics.totalCapital.toLocaleString()}</dd>
                   </dl>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
 import PageContainer from '@/components/PageContainer'
+import FiscalYearSelectorCompact from '@/components/FiscalYearSelectorCompact'
 import { 
   useMockDistributionsData, 
   Distribution,
@@ -27,12 +28,15 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Distributions() {
-  const { currentFiscalYear } = useFiscalYear()
+  const { currentFiscalYear, availableYears } = useFiscalYear()
   const { success, error: showError } = useToast()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null)
   const [selectedType, setSelectedType] = useState<DistributionType | 'all'>('all')
   const [selectedStatus, setSelectedStatus] = useState<DistributionStatus | 'all'>('all')
+  const [showHistoricalView, setShowHistoricalView] = useState(false)
+  const [historicalStartYear, setHistoricalStartYear] = useState(currentFiscalYear - 3)
+  const [historicalEndYear, setHistoricalEndYear] = useState(currentFiscalYear)
 
   const { data, isLoading, error } = useMockDistributionsData()
 
@@ -126,7 +130,20 @@ export default function Distributions() {
                 Manage profit distributions to members for FY {currentFiscalYear}
               </p>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
+            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center space-x-2">
+              {/* Fiscal Year Selector */}
+              <div className="bg-white/10 backdrop-blur rounded-lg px-3 py-1">
+                <FiscalYearSelectorCompact className="text-white" />
+              </div>
+              
+              <button
+                onClick={() => setShowHistoricalView(!showHistoricalView)}
+                className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+              >
+                <ClockIcon className="h-4 w-4 mr-2" />
+                Historical
+              </button>
+              
               <button
                 onClick={handleExport}
                 className="inline-flex items-center px-3 py-2 border border-white/20 shadow-sm text-sm leading-4 font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
@@ -145,6 +162,82 @@ export default function Distributions() {
           </div>
         </div>
       </div>
+
+      {/* Historical View Panel */}
+      {showHistoricalView && (
+        <div className="bg-white shadow-xl rounded-xl border border-gray-100 mb-8 p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Historical Distribution Analysis</h3>
+              <p className="text-sm text-gray-600">Compare distribution trends across fiscal years</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <select
+                value={historicalStartYear}
+                onChange={(e) => setHistoricalStartYear(Number(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                {availableYears.map(year => (
+                  <option key={year} value={year}>FY {year}</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-500">to</span>
+              <select
+                value={historicalEndYear}
+                onChange={(e) => setHistoricalEndYear(Number(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                {availableYears.filter(year => year >= historicalStartYear).map(year => (
+                  <option key={year} value={year}>FY {year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* Historical Charts Placeholder */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-medium text-gray-900">Distribution Trends</h4>
+                <ChartBarIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <div className="h-48 flex items-center justify-center">
+                <p className="text-sm text-gray-500">Distribution trend chart placeholder</p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-medium text-gray-900">Type Breakdown</h4>
+                <ChartBarIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <div className="h-48 flex items-center justify-center">
+                <p className="text-sm text-gray-500">Distribution type breakdown placeholder</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Historical Summary */}
+          <div className="mt-6 grid grid-cols-4 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-blue-900">$2.4M</div>
+              <div className="text-sm text-blue-700">Total Distributed</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-green-900">+15%</div>
+              <div className="text-sm text-green-700">YoY Growth</div>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-purple-900">18</div>
+              <div className="text-sm text-purple-700">Distributions</div>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-orange-900">$133K</div>
+              <div className="text-sm text-orange-700">Avg Distribution</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="mb-6 flex space-x-4">

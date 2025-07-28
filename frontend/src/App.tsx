@@ -13,6 +13,9 @@ import DistributionManagement from '@/pages/DistributionManagement'
 import Analytics from '@/pages/Analytics'
 import Documents from '@/pages/Documents'
 import Audit from '@/pages/Audit'
+import BoardApprovalDetails from '@/pages/BoardApprovalDetails'
+import EquityManualUpdate from '@/pages/EquityManualUpdate'
+import EquityExcelUpdate from '@/pages/EquityExcelUpdate'
 import Layout from '@/components/Layout'
 import PermissionGuard from '@/components/PermissionGuard'
 import { useMockAuth } from '@/contexts/MockAuthContext'
@@ -101,6 +104,30 @@ function AppRoutes() {
           </PermissionGuard>
         } 
       />
+      <Route 
+        path="/equity/board-approvals/:id" 
+        element={
+          <PermissionGuard resource="equity">
+            <BoardApprovalDetails />
+          </PermissionGuard>
+        } 
+      />
+      <Route 
+        path="/equity/manual-update" 
+        element={
+          <PermissionGuard resource="equity" permission="equity:write">
+            <EquityManualUpdate />
+          </PermissionGuard>
+        } 
+      />
+      <Route 
+        path="/equity/excel-update" 
+        element={
+          <PermissionGuard resource="equity" permission="equity:write">
+            <EquityExcelUpdate />
+          </PermissionGuard>
+        } 
+      />
     </Routes>
   )
 }
@@ -111,7 +138,7 @@ function App() {
       <ToastProvider>
         <FiscalYearProvider>
           <QueryClientProvider client={queryClient}>
-            <Router>
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Layout>
                 <AppRoutes />
               </Layout>

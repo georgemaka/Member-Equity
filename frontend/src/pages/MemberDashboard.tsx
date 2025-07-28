@@ -3,6 +3,7 @@ import { useMockAuth } from '@/contexts/MockAuthContext'
 import { useMockMembersData } from '@/hooks/useMockMembersData'
 import { useMockDistributionsData } from '@/hooks/useMockDistributionsData'
 import { useMockTaxPaymentsData } from '@/hooks/useMockTaxPaymentsData'
+import PageContainer from '@/components/PageContainer'
 import { 
   ChartPieIcon,
   CurrencyDollarIcon,
@@ -31,7 +32,7 @@ export default function MemberDashboard() {
 
   if (!currentMember) {
     return (
-      <div className="px-4 py-6 sm:px-0">
+      <PageContainer fullWidth>
         <div className="text-center py-12">
           <InformationCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Member Profile Not Found</h3>
@@ -39,7 +40,7 @@ export default function MemberDashboard() {
             Unable to locate your member profile. Please contact an administrator.
           </p>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
@@ -47,7 +48,7 @@ export default function MemberDashboard() {
   const estimatedValue = (currentEquity?.estimatedPercentage || 0) * 1000000 // Mock company value
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-sukut-600 via-sukut-700 to-sukut-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -266,6 +267,6 @@ export default function MemberDashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   )
 }

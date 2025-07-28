@@ -65,13 +65,9 @@ export class DistributionsService {
         .div(100)
         .toDecimalPlaces(2, Decimal.ROUND_DOWN);
 
-      const taxRate = new Decimal(member.taxWithholdingPercentage.toString());
-      const taxWithholding = grossAmount
-        .mul(taxRate)
-        .div(100)
-        .toDecimalPlaces(2, Decimal.ROUND_UP);
-
-      const netAmount = grossAmount.minus(taxWithholding);
+      // Tax withholding is now handled externally - set to 0
+      const taxWithholding = new Decimal(0);
+      const netAmount = grossAmount;
 
       return {
         memberId: member.id,

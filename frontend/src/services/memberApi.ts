@@ -8,21 +8,29 @@ import {
   PaginatedMembers,
   MemberEquityHistory,
   MemberBalanceHistory,
-  UploadResult
+  UploadResult,
+  StatusHistory
 } from '@/types/member'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api/v1'
 
 class MemberApiService {
   private async fetchWithAuth(url: string, options: RequestInit = {}) {
-    // For now using mock token - later integrate with actual auth
-    const token = 'mock-token-for-development'
+    // Get mock user from localStorage or use default
+    const mockUser = JSON.parse(localStorage.getItem('mockUser') || JSON.stringify({
+      id: 'dev-user-1',
+      email: 'admin@example.com',
+      companyId: 'cmbno3kq80000596mblh2id26',
+      role: 'admin',
+      permissions: ['*']
+    }))
     
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer mock-token-for-development`,
+        'X-Mock-Auth': JSON.stringify(mockUser),
         ...options.headers,
       },
     })
@@ -35,7 +43,8 @@ class MemberApiService {
     return response.json()
   }
 
-  async getMembers(page = 1, limit = 10, fiscalYear?: number): Promise<PaginatedMembers> {
+  async getMembers(params: { page?: number, limit?: number, fiscalYear?: number } = {}): Promise<PaginatedMembers> {
+    const { page = 1, limit = 10, fiscalYear } = params
     const yearParam = fiscalYear ? `&fiscalYear=${fiscalYear}` : ''
     return this.fetchWithAuth(`/members?page=${page}&limit=${limit}${yearParam}`)
   }
@@ -100,18 +109,30 @@ class MemberApiService {
     return this.fetchWithAuth(`/members/${id}/balance-history${yearParam}`)
   }
 
+  async getStatusHistory(id: string, limit?: number): Promise<StatusHistory[]> {
+    const limitParam = limit ? `?limit=${limit}` : ''
+    return this.fetchWithAuth(`/members/${id}/status-history${limitParam}`)
+  }
+
   async uploadMembers(file: File, skipValidation = false, dryRun = false): Promise<UploadResult> {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('skipValidation', skipValidation.toString())
     formData.append('dryRun', dryRun.toString())
 
-    const token = 'mock-token-for-development'
+    const mockUser = JSON.parse(localStorage.getItem('mockUser') || JSON.stringify({
+      id: 'dev-user-1',
+      email: 'admin@example.com',
+      companyId: 'cmbno3kq80000596mblh2id26',
+      role: 'admin',
+      permissions: ['*']
+    }))
     
     const response = await fetch(`${API_BASE_URL}/members/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer mock-token-for-development`,
+        'X-Mock-Auth': JSON.stringify(mockUser),
       },
       body: formData,
     })
@@ -125,11 +146,18 @@ class MemberApiService {
   }
 
   async downloadTemplate(): Promise<Blob> {
-    const token = 'mock-token-for-development'
+    const mockUser = JSON.parse(localStorage.getItem('mockUser') || JSON.stringify({
+      id: 'dev-user-1',
+      email: 'admin@example.com',
+      companyId: 'cmbno3kq80000596mblh2id26',
+      role: 'admin',
+      permissions: ['*']
+    }))
     
     const response = await fetch(`${API_BASE_URL}/members/upload/template`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer mock-token-for-development`,
+        'X-Mock-Auth': JSON.stringify(mockUser),
       },
     })
 
@@ -138,6 +166,146 @@ class MemberApiService {
     }
 
     return response.blob()
+  }
+
+  async exportEquityState(companyId: string): Promise<any> {
+    const mockUser = JSON.parse(localStorage.getItem('mockUser') || JSON.stringify({
+      id: 'dev-user-1',
+      email: 'admin@example.com',
+      companyId: 'cmbno3kq80000596mblh2id26',
+      role: 'admin',
+      permissions: ['*']
+    }))
+    
+    const response = await fetch(`${API_BASE_URL}/members/equity/export`, {
+      headers: {
+        'Authorization': `Bearer mock-token-for-development`,
+        'X-Mock-Auth': JSON.stringify(mockUser),
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    return { data: await response.blob() }
+  }
+
+  async validateEquityImport(companyId: string, file: File): Promise<any> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const mockUser = JSON.parse(localStorage.getItem('mockUser') || JSON.stringify({
+      id: 'dev-user-1',
+      email: 'admin@example.com',
+      companyId: 'cmbno3kq80000596mblh2id26',
+      role: 'admin',
+      permissions: ['*']
+    }))
+    
+    const response = await fetch(`${API_BASE_URL}/members/equity/import/validate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer mock-token-for-development`,
+        'X-Mock-Auth': JSON.stringify(mockUser),
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }))
+      throw new Error(error.message || `HTTP ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  async importEquityUpdates(companyId: string, formData: FormData): Promise<any> {
+    const mockUser = JSON.parse(localStorage.getItem('mockUser') || JSON.stringify({
+      id: 'dev-user-1',
+      email: 'admin@example.com',
+      companyId: 'cmbno3kq80000596mblh2id26',
+      role: 'admin',
+      permissions: ['*']
+    }))
+    
+    const response = await fetch(`${API_BASE_URL}/members/equity/import`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer mock-token-for-development`,
+        'X-Mock-Auth': JSON.stringify(mockUser),
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }))
+      throw new Error(error.message || `HTTP ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  async createBoardApproval(companyId: string, data: any): Promise<any> {
+    return this.fetchWithAuth('/members/equity/board-approval', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async approveBoardApproval(approvalId: string): Promise<any> {
+    return this.fetchWithAuth(`/members/equity/board-approval/${approvalId}/approve`, {
+      method: 'POST',
+    })
+  }
+
+  async applyBoardApproval(approvalId: string): Promise<any> {
+    return this.fetchWithAuth(`/members/equity/board-approval/${approvalId}/apply`, {
+      method: 'POST',
+    })
+  }
+
+  async calculateProRata(companyId: string, excludeIds?: string[]): Promise<any> {
+    const params = excludeIds?.length ? `?excludeIds=${excludeIds.join(',')}` : ''
+    return this.fetchWithAuth(`/members/equity/pro-rata-calculation${params}`)
+  }
+
+  async exportEquityTemplate(): Promise<Blob> {
+    const response = await fetch(`${this.baseURL}/members/equity/export`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`,
+        'X-Mock-Auth': JSON.stringify(this.mockAuth),
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to export equity template')
+    }
+    
+    return response.blob()
+  }
+
+  async createBulkEquityUpdate(updates: any[], notes: string): Promise<any> {
+    // Transform updates to match expected format
+    const transformedUpdates = updates.map(u => ({
+      memberId: u.memberId,
+      newEquityPercentage: u.estimatedPercentage || u.newPercentage,
+      changeReason: notes
+    }))
+    
+    return this.fetchWithAuth('/members/equity/board-approval', {
+      method: 'POST',
+      body: JSON.stringify({
+        updates: transformedUpdates,
+        boardApprovalTitle: `Equity Update ${new Date().toISOString().split('T')[0]}`,
+        boardApprovalDescription: notes,
+        boardApprovalType: 'ANNUAL_EQUITY_UPDATE',
+        boardApprovalDate: new Date().toISOString().split('T')[0],
+        effectiveDate: new Date().toISOString().split('T')[0],
+        notes,
+      }),
+    })
   }
 }
 

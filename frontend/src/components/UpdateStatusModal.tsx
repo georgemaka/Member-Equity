@@ -76,7 +76,10 @@ export default function UpdateStatusModal({ isOpen, onClose, member }: UpdateSta
   const updateStatusMutation = useMutation({
     mutationFn: (data: UpdateMemberStatusDto) => memberApi.updateStatus(member!.id, data),
     onSuccess: (updatedMember) => {
+      // Invalidate all member queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['members'] })
+      queryClient.invalidateQueries({ queryKey: ['members', currentFiscalYear] })
+      queryClient.invalidateQueries({ queryKey: ['member', member!.id] })
       success(
         'Status Updated', 
         `${updatedMember.firstName} ${updatedMember.lastName} status updated to ${formData.status}`
@@ -156,8 +159,8 @@ export default function UpdateStatusModal({ isOpen, onClose, member }: UpdateSta
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900">Update Member Status</h3>
           <button
             onClick={handleClose}
@@ -168,7 +171,8 @@ export default function UpdateStatusModal({ isOpen, onClose, member }: UpdateSta
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Member Info */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="font-medium text-gray-900">
@@ -302,8 +306,9 @@ export default function UpdateStatusModal({ isOpen, onClose, member }: UpdateSta
               disabled={updateStatusMutation.isLoading}
             />
           </div>
+          </div>
 
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 flex-shrink-0">
             <button
               type="button"
               onClick={handleClose}

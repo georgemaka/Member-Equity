@@ -42,7 +42,6 @@ export interface MemberExcelRow {
   zipCode: string;
   country: string;
   equityPercentage: number;
-  taxWithholdingPercentage: number;
   joinDate: string;
   accountType?: string;
   routingNumber?: string;

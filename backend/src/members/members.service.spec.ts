@@ -57,7 +57,6 @@ describe('MembersService', () => {
       lastName: 'Doe',
       email: 'john.doe@example.com',
       equityPercentage: new Decimal(10.5),
-      taxWithholdingPercentage: new Decimal(24),
       joinDate: '2024-01-01',
       address: { 
         street: '123 Main St', 
@@ -81,7 +80,6 @@ describe('MembersService', () => {
         ...createMemberDto,
         companyId: 'company-1',
         equityPercentage: new Decimal(createMemberDto.equityPercentage),
-        taxWithholdingPercentage: new Decimal(createMemberDto.taxWithholdingPercentage),
         joinDate: new Date(createMemberDto.joinDate),
       };
 

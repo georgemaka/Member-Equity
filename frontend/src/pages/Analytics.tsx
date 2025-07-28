@@ -5,6 +5,7 @@ import { useMockTaxPaymentsData } from '@/hooks/useMockTaxPaymentsData'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
 import PermissionGuard from '@/components/PermissionGuard'
+import PageContainer from '@/components/PageContainer'
 import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
@@ -55,19 +56,19 @@ export default function Analytics() {
   // Show loading state
   if (membersLoading || distributionsLoading || taxLoading) {
     return (
-      <div className="px-4 py-6 sm:px-0">
+      <PageContainer fullWidth>
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
           <p className="ml-4 text-lg text-gray-600">Loading analytics...</p>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   // Show error state
   if (membersError || distributionsError || taxError) {
     return (
-      <div className="px-4 py-6 sm:px-0">
+      <PageContainer fullWidth>
         <div className="text-center py-12">
           <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Analytics</h3>
@@ -75,7 +76,7 @@ export default function Analytics() {
             {(membersError || distributionsError || taxError)?.message || 'Unknown error occurred'}
           </p>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
@@ -210,7 +211,7 @@ export default function Analytics() {
   }
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -483,6 +484,6 @@ export default function Analytics() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

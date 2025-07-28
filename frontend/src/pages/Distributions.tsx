@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
+import PageContainer from '@/components/PageContainer'
 import { 
   useMockDistributionsData, 
   Distribution,
@@ -113,7 +114,7 @@ export default function Distributions() {
   }) || []
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -484,6 +485,6 @@ export default function Distributions() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

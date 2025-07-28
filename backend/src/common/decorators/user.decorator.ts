@@ -21,8 +21,12 @@ export const CompanyId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
     const user = request.user as UserContext;
-    // TODO: Remove default after JWT is enabled - using seeded company ID
-    return user?.companyId || 'cmbno3kq80000596mblh2id26';
+    
+    if (!user?.companyId) {
+      throw new Error('CompanyId not found in user context. Ensure authentication is properly configured.');
+    }
+    
+    return user.companyId;
   },
 );
 

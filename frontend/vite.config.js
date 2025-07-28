@@ -10,12 +10,23 @@ export default defineConfig({
         },
     },
     server: {
-        port: 3000,
+        port: 3010,
+        hmr: {
+            overlay: false,
+            clientPort: 3010,
+            host: 'localhost'
+        },
         proxy: {
             '/api': {
-                target: 'http://localhost:3001',
+                target: 'http://localhost:3002',
                 changeOrigin: true,
             },
         },
     },
+    // Ensure proper handling of client-side routing in preview mode
+    preview: {
+        port: 3010,
+    },
+    // This is important for SPA routing - it tells Vite to serve index.html for any route
+    appType: 'spa',
 });

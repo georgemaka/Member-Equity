@@ -33,6 +33,8 @@ interface EquityCalculations {
   yearOverYearChange: number
 }
 
+import PageContainer from '@/components/PageContainer'
+
 export default function EquityDashboard() {
   const { currentFiscalYear, setCurrentFiscalYear } = useFiscalYear()
   const { data: membersData } = useMockMembersData(1, 100) // Get all members
@@ -115,7 +117,7 @@ export default function EquityDashboard() {
   const availableYears = [2025, 2024, 2023, 2022, 2021]
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-green-600 via-green-700 to-green-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -252,6 +254,6 @@ export default function EquityDashboard() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   )
 }

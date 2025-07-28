@@ -54,14 +54,14 @@ export class CreateMemberDto {
   @IsDecimal()
   equityPercentage: Decimal;
 
-  @ApiProperty({ example: '25.00', description: 'Tax withholding percentage (0.00 to 100.00)' })
-  @Transform(({ value }) => new Decimal(value))
-  @IsDecimal()
-  taxWithholdingPercentage: Decimal;
-
   @ApiProperty({ example: '2024-01-01' })
   @IsDateString()
   joinDate: string;
+
+  @ApiProperty({ example: 'Senior Engineer', required: false })
+  @IsOptional()
+  @IsString()
+  jobTitle?: string;
 
   @ApiProperty({
     example: {

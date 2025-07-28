@@ -67,4 +67,9 @@ export class EventBusService {
   getHandlers(eventType: string): EventHandler[] {
     return this.handlers.get(eventType) || [];
   }
+
+  // Convenience method for emitting simple events without full domain event structure
+  async emit(eventType: string, payload: any): Promise<void> {
+    await this.eventEmitter.emitAsync(eventType, payload);
+  }
 }

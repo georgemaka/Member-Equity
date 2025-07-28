@@ -7,7 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        border: "hsl(var(--border, 210 40% 90%))",
+        input: "hsl(var(--input, 210 40% 95%))",
+        ring: "hsl(var(--ring, 217 91% 60%))",
+        background: "hsl(var(--background, 0 0% 100%))",
+        foreground: "hsl(var(--foreground, 222 47% 11%))",
         primary: {
+          DEFAULT: "hsl(var(--primary, 217 91% 60%))",
+          foreground: "hsl(var(--primary-foreground, 0 0% 100%))",
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -19,6 +26,30 @@ export default {
           800: '#1e40af',
           900: '#1e3a8a',
           950: '#172554',
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary, 210 40% 96%))",
+          foreground: "hsl(var(--secondary-foreground, 222 47% 11%))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive, 0 100% 50%))",
+          foreground: "hsl(var(--destructive-foreground, 0 0% 100%))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted, 210 40% 96%))",
+          foreground: "hsl(var(--muted-foreground, 215 16% 46%))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent, 210 40% 96%))",
+          foreground: "hsl(var(--accent-foreground, 222 47% 11%))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover, 0 0% 100%))",
+          foreground: "hsl(var(--popover-foreground, 222 47% 11%))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card, 0 0% 100%))",
+          foreground: "hsl(var(--card-foreground, 222 47% 11%))",
         },
         sukut: {
           50: '#f0f9ff',

@@ -25,6 +25,7 @@ model Company {
   profits              CompanyProfit[]
   distributions        Distribution[]
   documents            Document[]
+  boardApprovals       BoardApproval[]
 
   @@map("companies")
 }
@@ -36,11 +37,11 @@ model Member {
   lastName                String
   email                   String     @unique
   phone                   String?
+  jobTitle                String?
   ssn                     String?    @unique
   taxId                   String?    @unique
   address                 Json
   equityPercentage        Decimal    @db.Decimal(6, 4) // 0.0000 to 99.9999
-  taxWithholdingPercentage Decimal   @db.Decimal(5, 2) // 0.00 to 100.00
   joinDate                DateTime
   retirementDate          DateTime?
   status                  MemberStatus @default(ACTIVE)
@@ -54,6 +55,8 @@ model Member {
   memberDistributions     MemberDistribution[]
   documents               Document[]
   balanceHistory          BalanceHistory[]
+  statusHistory           StatusHistory[]
+  equityUpdates           EquityUpdate[]
 
   @@map("members")
 }
@@ -67,11 +70,58 @@ model EquityEvent {
   effectiveDate     DateTime
   reason            String?
   metadata          Json              @default("{}")
+  boardApprovalId   String?
   createdAt         DateTime          @default(now())
 
   member            Member            @relation(fields: [memberId], references: [id])
+  boardApproval     BoardApproval?    @relation(fields: [boardApprovalId], references: [id])
 
   @@map("equity_events")
+}
+
+model BoardApproval {
+  id                String                @id @default(cuid())
+  companyId         String
+  title             String
+  description       String?
+  approvalType      BoardApprovalType
+  approvalDate      DateTime
+  effectiveDate     DateTime
+  status            BoardApprovalStatus   @default(DRAFT)
+  totalEquityBefore Decimal               @db.Decimal(6, 4)
+  totalEquityAfter  Decimal               @db.Decimal(6, 4)
+  documentUrls      String[]
+  metadata          Json                  @default("{}")
+  submittedBy       String
+  submittedAt       DateTime?
+  approvedBy        String?
+  approvedAt        DateTime?
+  notes             String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  company           Company               @relation(fields: [companyId], references: [id])
+  equityEvents      EquityEvent[]
+  updates           EquityUpdate[]
+
+  @@map("board_approvals")
+}
+
+model EquityUpdate {
+  id                String            @id @default(cuid())
+  boardApprovalId   String
+  memberId          String
+  previousPercentage Decimal          @db.Decimal(6, 4)
+  newPercentage     Decimal           @db.Decimal(6, 4)
+  changePercentage  Decimal           @db.Decimal(6, 4)
+  changeReason      String?
+  warnings          String[]
+  createdAt         DateTime          @default(now())
+
+  boardApproval     BoardApproval     @relation(fields: [boardApprovalId], references: [id])
+  member            Member            @relation(fields: [memberId], references: [id])
+
+  @@map("equity_updates")
 }
 
 model CompanyProfit {
@@ -153,6 +203,24 @@ model BalanceHistory {
   @@map("balance_history")
 }
 
+model StatusHistory {
+  id                String        @id @default(cuid())
+  memberId          String
+  previousStatus    MemberStatus
+  newStatus         MemberStatus
+  effectiveDate     DateTime
+  fiscalYear        Int?
+  reason            String
+  notes             String?
+  changedBy         String?       // User ID who made the change
+  createdAt         DateTime      @default(now())
+
+  member            Member        @relation(fields: [memberId], references: [id])
+
+  @@index([memberId, effectiveDate])
+  @@map("status_history")
+}
+
 model Document {
   id              String        @id @default(cuid())
   companyId       String?
@@ -229,6 +297,10 @@ enum MemberStatus {
   INACTIVE
   RETIRED
   TERMINATED
+  RESIGNED
+  DECEASED
+  SUSPENDED
+  PROBATIONARY
 }
 
 enum EquityEventType {
@@ -237,6 +309,8 @@ enum EquityEventType {
   RETIREMENT
   TERMINATION
   ADJUSTMENT
+  BOARD_APPROVED_UPDATE
+  PRO_RATA_ADJUSTMENT
 }
 
 enum DistributionStatus {
@@ -292,4 +366,21 @@ enum NotificationStatus {
   SENT
   FAILED
   READ
+}
+
+enum BoardApprovalType {
+  ANNUAL_EQUITY_UPDATE
+  MID_YEAR_ADJUSTMENT
+  SPECIAL_ALLOCATION
+  RETIREMENT_ADJUSTMENT
+  TERMINATION_ADJUSTMENT
+}
+
+enum BoardApprovalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  APPLIED
+  REJECTED
+  CANCELLED
 }

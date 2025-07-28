@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useMockTaxPaymentsData, PaymentType, PAYMENT_TYPE_LABELS } from '@/hooks/useMockTaxPaymentsData'
+import PageContainer from '@/components/PageContainer'
 import { 
   CurrencyDollarIcon,
   CalendarDaysIcon,
@@ -101,7 +102,7 @@ export default function TaxPayments() {
   }) || []
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -421,6 +422,6 @@ export default function TaxPayments() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

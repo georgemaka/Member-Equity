@@ -53,16 +53,18 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
   useEffect(() => {
     if (membersData?.data) {
       const updates: Record<string, MemberEquityUpdate> = {}
-      membersData.data.forEach((member: Member) => {
-        if (member.currentEquity) {
-          updates[member.id] = {
-            memberId: member.id,
-            estimatedPercentage: member.currentEquity.estimatedPercentage,
-            finalPercentage: member.currentEquity.finalPercentage || member.currentEquity.estimatedPercentage,
-            capitalBalance: member.currentEquity.capitalBalance,
-            isEditing: false,
-            hasChanges: false
-          }
+      const activeMembers = membersData.data.filter((member: Member) => member.status === 'ACTIVE')
+      
+      activeMembers.forEach((member: Member) => {
+        // Use the member's current equity percentage
+        const currentEquityPercentage = parseFloat(member.equityPercentage || '0')
+        updates[member.id] = {
+          memberId: member.id,
+          estimatedPercentage: currentEquityPercentage,
+          finalPercentage: currentEquityPercentage,
+          capitalBalance: 0, // Required by type but not used in UI
+          isEditing: false,
+          hasChanges: false
         }
       })
       setMemberUpdates(updates)
@@ -184,9 +186,6 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
                         Final %
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Capital Balance
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -195,11 +194,13 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {membersData?.data?.map((member: Member) => {
-                      const update = memberUpdates[member.id]
-                      if (!update) return null
+                    {membersData?.data
+                      ?.filter((member: Member) => member.status === 'ACTIVE')
+                      ?.map((member: Member) => {
+                        const update = memberUpdates[member.id]
+                        if (!update) return null
 
-                      return (
+                        return (
                         <tr key={member.id} className={`${update.hasChanges ? 'bg-orange-50' : 'hover:bg-gray-50'}`}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -250,26 +251,12 @@ export default function BoardEquityView({ isOpen, onClose }: BoardEquityViewProp
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {update.isEditing ? (
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={update.capitalBalance}
-                                onChange={(e) => updateMemberEquity(member.id, 'capitalBalance', parseFloat(e.target.value) || 0)}
-                                className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-sukut-500"
-                              />
-                            ) : (
-                              <span className="text-sm text-gray-900">${update.capitalBalance.toLocaleString()}</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              member.currentEquity?.isFinalized
+                              member.status === 'ACTIVE'
                                 ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {member.currentEquity?.isFinalized ? 'Finalized' : 'Draft'}
+                              {member.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

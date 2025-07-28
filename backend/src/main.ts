@@ -53,8 +53,9 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = configService.get('PORT', 3001);
-  await app.listen(port);
-  console.log(`🚀 Sukut Construction Equity API running on port ${port}`);
+  const host = '0.0.0.0'; // Bind to all interfaces
+  await app.listen(port, host);
+  console.log(`🚀 Sukut Construction Equity API running on ${host}:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
 }
 

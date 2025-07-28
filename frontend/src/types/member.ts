@@ -6,7 +6,7 @@ export interface Member {
   lastName: string
   email: string
   phone?: string
-  address?: string
+  address?: string | any
   city?: string
   state?: string
   zipCode?: string
@@ -24,12 +24,14 @@ export interface Member {
   currentEquity?: MemberYearlyEquity
   currentStatus?: MemberYearlyStatus
   // Historical data
-  equityHistory?: MemberYearlyEquity[]
-  statusHistory?: MemberYearlyStatus[]
+  equityHistory?: MemberYearlyEquity[] | any[]
+  statusHistory?: StatusHistory[]
   // Legacy fields for backward compatibility
   isActive: boolean
   retirementDate?: string
   retirementReason?: string
+  status?: string
+  equityPercentage?: string | number
 }
 
 export interface MemberYearlyStatus {
@@ -43,6 +45,19 @@ export interface MemberYearlyStatus {
   changedBy?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface StatusHistory {
+  id: string
+  memberId: string
+  previousStatus: MemberStatus
+  newStatus: MemberStatus
+  effectiveDate: string
+  fiscalYear?: number
+  reason: string
+  notes?: string
+  changedBy?: string
+  createdAt: string
 }
 
 export interface MemberYearlyEquity {
@@ -82,7 +97,7 @@ export interface UpdateMemberDto {
   lastName?: string
   email?: string
   phone?: string
-  address?: string
+  address?: string | any
   city?: string
   state?: string
   zipCode?: string

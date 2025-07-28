@@ -5,13 +5,17 @@ import { useToast } from '@/contexts/ToastContext'
 import { useMembers, useCreateMember, useUpdateMember, useUpdateEquity, useRetireMember, useUploadMembers } from '@/hooks/useMembers'
 import MemberOverviewEnhanced from '@/components/dashboard/MemberOverviewEnhanced'
 import AddMemberModal from '@/components/AddMemberModal'
+import EditMemberModal from '@/components/EditMemberModal'
 import ExcelUploadModal from '@/components/ExcelUploadModal'
 import BoardEquityView from '@/components/BoardEquityView'
+import MemberDetailsModal from '@/components/MemberDetailsModal'
+import EquityUpdateWizard from '@/components/equity/EquityUpdateWizard'
 import PermissionGuard from '@/components/PermissionGuard'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import ErrorMessage from '@/components/ErrorMessage'
 import PageHeader from '@/components/PageHeader'
 import YearOverYearComparison from '@/components/YearOverYearComparison'
+import PageContainer from '@/components/PageContainer'
 import { 
   PlusIcon, 
   ArrowUpTrayIcon, 
@@ -21,7 +25,8 @@ import {
   PresentationChartLineIcon,
   DocumentCheckIcon,
   CurrencyDollarIcon,
-  TableCellsIcon
+  TableCellsIcon,
+  AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline'
 
 // Adapter function to convert Member to MemberSummary
@@ -295,11 +300,14 @@ function MemberFinancialSummaryTable({ members }: { members: MemberSummary[] }) 
 
 export default function MembersEnhanced() {
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
+  const [showEquityUpdateWizard, setShowEquityUpdateWizard] = useState(false)
   const [showBoardView, setShowBoardView] = useState(false)
   const [showFinancialSummary, setShowFinancialSummary] = useState(false)
   const [showYearOverYear, setShowYearOverYear] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [editingMember, setEditingMember] = useState<Member | null>(null)
   
   const { showToast } = useToast()
   
@@ -334,6 +342,11 @@ export default function MembersEnhanced() {
 
   const handleBulkUpload = () => {
     setShowUploadModal(true)
+  }
+
+  const handleEditMember = (memberSummary: MemberSummary) => {
+    setEditingMember(memberSummary.member)
+    setShowEditModal(true)
   }
 
   const handleExport = async () => {
@@ -400,7 +413,7 @@ export default function MembersEnhanced() {
   }
 
   return (
-    <div className="w-full">
+    <PageContainer fullWidth>
       {/* Header */}
       <PageHeader
         title="Members"
@@ -449,6 +462,13 @@ export default function MembersEnhanced() {
               Board View
             </button>
             <PermissionGuard permission="members:write">
+              <button
+                onClick={() => setShowEquityUpdateWizard(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center"
+              >
+                <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
+                Equity Update
+              </button>
               <button
                 onClick={handleBulkUpload}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors flex items-center"
@@ -575,6 +595,7 @@ export default function MembersEnhanced() {
           groupAnalyses={[]} // No grouping for now
           onMemberSelect={handleMemberSelect}
           onMemberCompare={handleMemberCompare}
+          onEditMember={handleEditMember}
           loading={isLoading}
           fullWidth={true}
         />
@@ -586,10 +607,32 @@ export default function MembersEnhanced() {
         onClose={() => setShowAddModal(false)}
       />
 
+      <EditMemberModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingMember(null)
+        }}
+        member={editingMember}
+      />
+
       <ExcelUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
       />
-    </div>
+
+      <MemberDetailsModal
+        member={selectedMember}
+        isOpen={!!selectedMember}
+        onClose={() => setSelectedMember(null)}
+      />
+
+      {/* Equity Update Wizard */}
+      <EquityUpdateWizard
+        isOpen={showEquityUpdateWizard}
+        onClose={() => setShowEquityUpdateWizard(false)}
+        companyId={localStorage.getItem('mockUser') ? JSON.parse(localStorage.getItem('mockUser') || '{}').companyId : ''}
+      />
+    </PageContainer>
   )
 }

@@ -46,7 +46,7 @@ export default function Layout({ children, fullWidth = false }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Navigation />
-      <main className={`flex-1 ${fullWidth ? 'p-2 sm:p-3 lg:p-4' : 'p-4 sm:p-6 lg:p-8 xl:p-10 2xl:p-12'}`}>
+      <main className={`flex-1 overflow-x-hidden ${fullWidth ? 'p-2 sm:p-3 lg:p-4' : 'p-4 sm:p-6 lg:p-8 xl:p-10 2xl:p-12'}`}>
         {children}
       </main>
     </div>

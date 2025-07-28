@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useFiscalYear } from '@/contexts/FiscalYearContext'
 import { useToast } from '@/contexts/ToastContext'
+import PageContainer from '@/components/PageContainer'
 import { 
   useMockCompanyFinancials,
   useMockAllocationPreview,
@@ -368,7 +369,7 @@ export default function YearEndAllocation() {
   ] : []
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header with gradient background */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -1478,6 +1479,6 @@ export default function YearEndAllocation() {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

@@ -1,9 +1,10 @@
 import AuditTrail from '@/components/AuditTrail'
+import PageContainer from '@/components/PageContainer'
 
 export default function Audit() {
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       <AuditTrail />
-    </div>
+    </PageContainer>
   )
 }

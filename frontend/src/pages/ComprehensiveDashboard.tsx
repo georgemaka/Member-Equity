@@ -11,6 +11,7 @@ import MemberDetailModal from '@/components/dashboard/MemberDetailModal'
 import ExportModal from '@/components/ExportModal'
 import AuditTrail from '@/components/AuditTrail'
 import DistributionRequestChart from '@/components/DistributionRequestChart'
+import PageContainer from '@/components/PageContainer'
 import {
   FunnelIcon,
   DocumentArrowDownIcon,
@@ -113,7 +114,7 @@ export default function ComprehensiveDashboard() {
 
   if (error) {
     return (
-      <div className="px-4 py-6 sm:px-0">
+      <PageContainer fullWidth>
         <div className="text-center py-12">
           <ExclamationTriangleIcon className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Dashboard</h3>
@@ -125,12 +126,12 @@ export default function ComprehensiveDashboard() {
             Retry
           </button>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -352,6 +353,6 @@ export default function ComprehensiveDashboard() {
         title="Export Member Data"
         filename="member-equity-report"
       />
-    </div>
+    </PageContainer>
   )
 }

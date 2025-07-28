@@ -62,7 +62,6 @@ describe('DistributionsService', () => {
         lastName: 'Doe',
         email: 'john@example.com',
         equityPercentage: new Decimal('40'),
-        taxWithholdingPercentage: new Decimal('24'),
       },
       {
         id: 'member-2',
@@ -70,7 +69,6 @@ describe('DistributionsService', () => {
         lastName: 'Smith',
         email: 'jane@example.com',
         equityPercentage: new Decimal('35'),
-        taxWithholdingPercentage: new Decimal('32'),
       },
       {
         id: 'member-3',
@@ -78,7 +76,6 @@ describe('DistributionsService', () => {
         lastName: 'Johnson',
         email: 'bob@example.com',
         equityPercentage: new Decimal('25'),
-        taxWithholdingPercentage: new Decimal('22'),
       },
     ];
 
@@ -97,8 +94,8 @@ describe('DistributionsService', () => {
       expect(johnDist).toEqual({
         memberId: 'member-1',
         amount: '40000.00',
-        taxWithholding: '9600.00', // 24% of $40,000
-        netAmount: '30400.00',
+        taxWithholding: '0.00', // Tax withholding removed
+        netAmount: '40000.00',
         member: {
           firstName: 'John',
           lastName: 'Doe',
@@ -112,8 +109,8 @@ describe('DistributionsService', () => {
       expect(janeDist).toEqual({
         memberId: 'member-2',
         amount: '35000.00',
-        taxWithholding: '11200.00', // 32% of $35,000
-        netAmount: '23800.00',
+        taxWithholding: '0.00', // Tax withholding removed
+        netAmount: '35000.00',
         member: {
           firstName: 'Jane',
           lastName: 'Smith',
@@ -127,8 +124,8 @@ describe('DistributionsService', () => {
       expect(bobDist).toEqual({
         memberId: 'member-3',
         amount: '25000.00',
-        taxWithholding: '5500.00', // 22% of $25,000
-        netAmount: '19500.00',
+        taxWithholding: '0.00', // Tax withholding removed
+        netAmount: '25000.00',
         member: {
           firstName: 'Bob',
           lastName: 'Johnson',
@@ -169,24 +166,21 @@ describe('DistributionsService', () => {
           lastName: 'Test',
           email: 'alice@example.com',
           equityPercentage: new Decimal('33.33'),
-          taxWithholdingPercentage: new Decimal('25'),
-        },
+          },
         {
           id: 'member-2',
           firstName: 'Bob',
           lastName: 'Test',
           email: 'bob@example.com',
           equityPercentage: new Decimal('33.33'),
-          taxWithholdingPercentage: new Decimal('25'),
-        },
+          },
         {
           id: 'member-3',
           firstName: 'Charlie',
           lastName: 'Test',
           email: 'charlie@example.com',
           equityPercentage: new Decimal('33.34'),
-          taxWithholdingPercentage: new Decimal('25'),
-        },
+          },
       ];
 
       mockPrismaService.member.findMany.mockResolvedValue(unevenMembers);
@@ -239,8 +233,7 @@ describe('DistributionsService', () => {
           lastName: 'User',
           email: 'test@example.com',
           equityPercentage: new Decimal('0.0001'), // Very small percentage
-          taxWithholdingPercentage: new Decimal('25'),
-        },
+          },
       ];
 
       mockPrismaService.member.findMany.mockResolvedValue(corruptMembers);
@@ -266,16 +259,14 @@ describe('DistributionsService', () => {
           lastName: 'Doe',
           email: 'john@example.com',
           equityPercentage: new Decimal('60'),
-          taxWithholdingPercentage: new Decimal('25'),
-        },
+          },
         {
           id: 'member-2',
           firstName: 'Jane',
           lastName: 'Smith',
           email: 'jane@example.com',
           equityPercentage: new Decimal('40'),
-          taxWithholdingPercentage: new Decimal('30'),
-        },
+          },
       ];
 
       mockPrismaService.companyProfit.findUnique.mockResolvedValue(mockProfit);

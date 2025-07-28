@@ -59,7 +59,6 @@ describe('MembersController', () => {
         lastName: 'Doe',
         email: 'john@example.com',
         equityPercentage: new Decimal(10),
-        taxWithholdingPercentage: new Decimal(24),
         joinDate: '2024-01-01',
         address: { 
           street: '123 Main St', 

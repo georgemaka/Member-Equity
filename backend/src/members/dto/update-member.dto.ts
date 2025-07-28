@@ -1,12 +1,17 @@
 import { PartialType, OmitType, ApiProperty } from '@nestjs/swagger';
-import { IsDecimal, IsDateString, IsString } from 'class-validator';
+import { IsDecimal, IsDateString, IsString, IsOptional } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { Decimal } from 'decimal.js';
 import { CreateMemberDto } from './create-member.dto';
 
 export class UpdateMemberDto extends PartialType(
   OmitType(CreateMemberDto, ['equityPercentage', 'joinDate'] as const)
-) {}
+) {
+  @ApiProperty({ example: 'Senior Engineer', required: false })
+  @IsOptional()
+  @IsString()
+  jobTitle?: string;
+}
 
 export class UpdateEquityDto {
   @ApiProperty({ example: '20.0000', description: 'New equity percentage' })

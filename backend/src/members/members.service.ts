@@ -4,6 +4,8 @@ import { EventBusService } from '../events/event-bus.service';
 import { MemberCreatedEvent, MemberEquityChangedEvent, MemberRetiredEvent } from '../events/domain-events';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto, UpdateEquityDto } from './dto/update-member.dto';
+import { UpdateMemberStatusDto } from './dto/update-status.dto';
+import { BulkEquityUpdateDto } from './dto/bulk-equity-update.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { Decimal } from 'decimal.js';
 
@@ -42,7 +44,6 @@ export class MembersService {
           companyId,
           joinDate: new Date(createMemberDto.joinDate),
           equityPercentage: new Decimal(createMemberDto.equityPercentage),
-          taxWithholdingPercentage: new Decimal(createMemberDto.taxWithholdingPercentage || 0),
         },
       });
 
@@ -94,8 +95,45 @@ export class MembersService {
       }),
     ]);
 
+    // Transform members to match frontend expectations
+    const formattedMembers = members.map(member => {
+      // Get the most recent equity data
+      const latestEquity = member.equityHistory?.[0];
+      const currentYear = new Date().getFullYear();
+      
+      return {
+        ...member,
+        equityPercentage: Number(member.equityPercentage) || 0, // Convert Decimal to number
+        status: member.status.toLowerCase(),
+        // Add currentStatus object for frontend compatibility
+        currentStatus: {
+          id: `status-${member.id}`,
+          memberId: member.id,
+          fiscalYear: currentYear,
+          status: member.status.toLowerCase(),
+          effectiveDate: member.updatedAt.toISOString(),
+          createdAt: member.updatedAt.toISOString(),
+          updatedAt: member.updatedAt.toISOString(),
+        },
+        // Add currentEquity based on the member's equity percentage
+        currentEquity: {
+          id: `equity-${member.id}-${currentYear}`,
+          memberId: member.id,
+          fiscalYear: currentYear,
+          estimatedPercentage: Number(member.equityPercentage) || 0,
+          finalPercentage: Number(member.equityPercentage) || 0,
+          capitalBalance: 0, // TODO: Calculate from balance history
+          isFinalized: false,
+          createdAt: member.createdAt.toISOString(),
+          updatedAt: member.updatedAt.toISOString(),
+        },
+        // Add legacy fields for compatibility
+        isActive: member.status === 'ACTIVE',
+      };
+    });
+
     return {
-      data: members,
+      data: formattedMembers,
       total,
       page: pagination.page,
       limit: pagination.limit,
@@ -119,6 +157,10 @@ export class MembersService {
         balanceHistory: {
           orderBy: { effectiveDate: 'desc' },
         },
+        statusHistory: {
+          orderBy: { effectiveDate: 'desc' },
+          take: 10,
+        },
       },
     });
 
@@ -126,7 +168,44 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    return member;
+    // Transform member to match frontend expectations
+    const currentYear = new Date().getFullYear();
+    
+    return {
+      ...member,
+      equityPercentage: Number(member.equityPercentage) || 0, // Convert Decimal to number
+      status: member.status.toLowerCase(),
+      // Add currentStatus object for frontend compatibility
+      currentStatus: {
+        id: `status-${member.id}`,
+        memberId: member.id,
+        fiscalYear: currentYear,
+        status: member.status.toLowerCase(),
+        effectiveDate: member.updatedAt.toISOString(),
+        createdAt: member.updatedAt.toISOString(),
+        updatedAt: member.updatedAt.toISOString(),
+      },
+      // Add currentEquity based on the member's equity percentage
+      currentEquity: {
+        id: `equity-${member.id}-${currentYear}`,
+        memberId: member.id,
+        fiscalYear: currentYear,
+        estimatedPercentage: Number(member.equityPercentage) || 0,
+        finalPercentage: Number(member.equityPercentage) || 0,
+        capitalBalance: 0, // TODO: Calculate from balance history
+        isFinalized: false,
+        createdAt: member.createdAt.toISOString(),
+        updatedAt: member.updatedAt.toISOString(),
+      },
+      // Transform status history
+      statusHistory: member.statusHistory.map(history => ({
+        ...history,
+        previousStatus: history.previousStatus.toLowerCase(),
+        newStatus: history.newStatus.toLowerCase(),
+      })),
+      // Add legacy fields for compatibility
+      isActive: member.status === 'ACTIVE',
+    };
   }
 
   async update(id: string, updateMemberDto: UpdateMemberDto) {
@@ -138,10 +217,44 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    return this.prisma.member.update({
+    // Transform the DTO to handle Decimal types properly
+    const updateData: any = { ...updateMemberDto };
+
+    const updatedMember = await this.prisma.member.update({
       where: { id },
-      data: updateMemberDto,
+      data: updateData,
     });
+
+    // Transform member to match frontend expectations
+    const currentYear = new Date().getFullYear();
+    
+    return {
+      ...updatedMember,
+      equityPercentage: Number(updatedMember.equityPercentage) || 0, // Convert Decimal to number
+      status: updatedMember.status.toLowerCase(),
+      currentStatus: {
+        id: `status-${updatedMember.id}`,
+        memberId: updatedMember.id,
+        status: updatedMember.status.toLowerCase(),
+        fiscalYear: currentYear,
+        effectiveDate: updatedMember.updatedAt.toISOString(),
+        createdAt: updatedMember.updatedAt.toISOString(),
+        updatedAt: updatedMember.updatedAt.toISOString(),
+      },
+      // Add currentEquity based on the member's equity percentage
+      currentEquity: {
+        id: `equity-${updatedMember.id}-${currentYear}`,
+        memberId: updatedMember.id,
+        fiscalYear: currentYear,
+        estimatedPercentage: Number(updatedMember.equityPercentage) || 0,
+        finalPercentage: Number(updatedMember.equityPercentage) || 0,
+        capitalBalance: 0, // TODO: Calculate from balance history
+        isFinalized: false,
+        createdAt: updatedMember.createdAt.toISOString(),
+        updatedAt: updatedMember.updatedAt.toISOString(),
+      },
+      isActive: updatedMember.status === 'ACTIVE',
+    };
   }
 
   async updateEquity(id: string, updateEquityDto: UpdateEquityDto) {
@@ -279,6 +392,29 @@ export class MembersService {
     });
   }
 
+  async getStatusHistory(id: string, limit?: number) {
+    const member = await this.prisma.member.findUnique({
+      where: { id },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    const statusHistory = await this.prisma.statusHistory.findMany({
+      where: { memberId: id },
+      orderBy: { effectiveDate: 'desc' },
+      take: limit || 20,
+    });
+
+    // Transform status history to match frontend expectations
+    return statusHistory.map(history => ({
+      ...history,
+      previousStatus: history.previousStatus.toLowerCase(),
+      newStatus: history.newStatus.toLowerCase(),
+    }));
+  }
+
   private async getCurrentEquityTotal(companyId: string): Promise<Decimal> {
     const members = await this.prisma.member.findMany({
       where: {
@@ -309,6 +445,210 @@ export class MembersService {
       isValid: total.equals(100),
       total: total.toFixed(4),
       members: memberCount,
+    };
+  }
+
+  async updateStatus(id: string, updateStatusDto: UpdateMemberStatusDto) {
+    const member = await this.prisma.member.findUnique({
+      where: { id },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    // Convert lowercase status to uppercase for Prisma enum
+    const newStatus = updateStatusDto.status.toUpperCase() as any;
+    const previousStatus = member.status;
+
+    // Use transaction to ensure consistency
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Update member status
+      const updatedMember = await tx.member.update({
+        where: { id },
+        data: {
+          status: newStatus,
+        },
+        include: {
+          equityHistory: {
+            orderBy: { effectiveDate: 'desc' },
+          },
+          memberDistributions: {
+            include: {
+              distribution: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+          balanceHistory: {
+            orderBy: { effectiveDate: 'desc' },
+          },
+          statusHistory: {
+            orderBy: { effectiveDate: 'desc' },
+            take: 10,
+          },
+        },
+      });
+
+      // Create status history record
+      await tx.statusHistory.create({
+        data: {
+          memberId: id,
+          previousStatus: previousStatus,
+          newStatus: newStatus,
+          effectiveDate: new Date(updateStatusDto.effectiveDate),
+          fiscalYear: updateStatusDto.fiscalYear,
+          reason: updateStatusDto.reason,
+          notes: updateStatusDto.notes,
+          changedBy: 'dev-user-1', // TODO: Get from auth context
+        },
+      });
+
+      // Create audit log
+      await tx.auditLog.create({
+        data: {
+          userId: 'dev-user-1', // TODO: Get from auth context
+          action: 'UPDATE_MEMBER_STATUS',
+          resourceType: 'Member',
+          resourceId: id,
+          previousData: { status: previousStatus },
+          newData: { 
+            status: newStatus,
+            reason: updateStatusDto.reason,
+            notes: updateStatusDto.notes,
+            effectiveDate: updateStatusDto.effectiveDate,
+          },
+        },
+      });
+
+      return updatedMember;
+    });
+    
+    // Transform member to match frontend expectations
+    const currentYear = updateStatusDto.fiscalYear || new Date().getFullYear();
+    
+    return {
+      ...result,
+      equityPercentage: Number(result.equityPercentage) || 0, // Convert Decimal to number
+      status: result.status.toLowerCase(),
+      // Add currentStatus object for frontend compatibility
+      currentStatus: {
+        id: `status-${result.id}`,
+        memberId: result.id,
+        fiscalYear: currentYear,
+        status: result.status.toLowerCase(),
+        effectiveDate: updateStatusDto.effectiveDate,
+        reason: updateStatusDto.reason,
+        notes: updateStatusDto.notes,
+        createdAt: result.updatedAt.toISOString(),
+        updatedAt: result.updatedAt.toISOString(),
+      },
+      // Add currentEquity based on the member's equity percentage
+      currentEquity: {
+        id: `equity-${result.id}-${currentYear}`,
+        memberId: result.id,
+        fiscalYear: currentYear,
+        estimatedPercentage: Number(result.equityPercentage) || 0,
+        finalPercentage: Number(result.equityPercentage) || 0,
+        capitalBalance: 0, // TODO: Calculate from balance history
+        isFinalized: false,
+        createdAt: result.createdAt.toISOString(),
+        updatedAt: result.updatedAt.toISOString(),
+      },
+      // Transform status history
+      statusHistory: result.statusHistory.map(history => ({
+        ...history,
+        previousStatus: history.previousStatus.toLowerCase(),
+        newStatus: history.newStatus.toLowerCase(),
+      })),
+      // Add legacy fields for compatibility
+      isActive: result.status === 'ACTIVE',
+    };
+  }
+
+  async bulkUpdateEquity(companyId: string, bulkUpdateDto: BulkEquityUpdateDto) {
+    const { updates, fiscalYear, reason } = bulkUpdateDto;
+
+    // Validate all members exist and belong to the company
+    const memberIds = updates.map(u => u.memberId);
+    const members = await this.prisma.member.findMany({
+      where: {
+        id: { in: memberIds },
+        companyId,
+      },
+    });
+
+    if (members.length !== memberIds.length) {
+      throw new NotFoundException('One or more members not found');
+    }
+
+    // Validate total equity percentage
+    const totalFinalEquity = updates.reduce(
+      (sum, update) => sum + update.finalPercentage,
+      0
+    );
+
+    if (Math.abs(totalFinalEquity - 100) > 0.01) {
+      throw new BadRequestException(
+        `Total final equity must equal 100%. Current total: ${totalFinalEquity.toFixed(2)}%`
+      );
+    }
+
+    // Perform bulk update in transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatePromises = updates.map(async (update) => {
+        // Update member equity
+        const updatedMember = await tx.member.update({
+          where: { id: update.memberId },
+          data: {
+            equityPercentage: new Decimal(update.finalPercentage),
+          },
+        });
+
+        // Create equity event
+        await tx.equityEvent.create({
+          data: {
+            memberId: update.memberId,
+            eventType: 'ADJUSTMENT',
+            previousPercentage: new Decimal(update.estimatedPercentage),
+            newPercentage: new Decimal(update.finalPercentage),
+            effectiveDate: new Date(`${fiscalYear}-12-31`),
+            reason: reason,
+            metadata: {
+              fiscalYear,
+              capitalBalance: update.capitalBalance,
+              bulkUpdate: true,
+            },
+          },
+        });
+
+        // Note: MemberYearlyEquity table doesn't exist yet
+        // This will be implemented when the Equity module is complete
+
+        return updatedMember;
+      });
+
+      return Promise.all(updatePromises);
+    });
+
+    // Emit events for each update
+    for (const update of updates) {
+      await this.eventBus.publish(
+        new MemberEquityChangedEvent(
+          update.memberId,
+          {
+            previousPercentage: new Decimal(update.estimatedPercentage),
+            newPercentage: new Decimal(update.finalPercentage),
+            effectiveDate: new Date(`${fiscalYear}-12-31`),
+            reason: reason,
+          }
+        )
+      );
+    }
+
+    return {
+      success: true,
+      updatedCount: result.length,
+      message: `Successfully updated equity for ${result.length} members`,
     };
   }
 }

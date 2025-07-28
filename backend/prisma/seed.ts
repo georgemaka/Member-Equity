@@ -36,7 +36,6 @@ async function main() {
       email: 'john.sukut@sukut.com',
       phone: '+1-714-555-0101',
       equityPercentage: new Decimal(25.0000),
-      taxWithholdingPercentage: new Decimal(25.00),
       joinDate: new Date('1971-01-01'),
       address: {
         street: '456 Executive Dr',
@@ -52,7 +51,6 @@ async function main() {
       email: 'mike.anderson@sukut.com',
       phone: '+1-714-555-0102',
       equityPercentage: new Decimal(15.0000),
-      taxWithholdingPercentage: new Decimal(22.00),
       joinDate: new Date('1985-03-15'),
       address: {
         street: '789 Manager Ln',
@@ -68,7 +66,6 @@ async function main() {
       email: 'sarah.johnson@sukut.com',
       phone: '+1-714-555-0103',
       equityPercentage: new Decimal(8.5000),
-      taxWithholdingPercentage: new Decimal(20.00),
       joinDate: new Date('1992-07-01'),
       address: {
         street: '321 Partner St',
@@ -157,8 +154,8 @@ async function main() {
 
   for (const member of allMembers) {
     const memberAmount = new Decimal(6000000).mul(member.equityPercentage).div(100);
-    const taxWithholding = memberAmount.mul(member.taxWithholdingPercentage).div(100);
-    const netAmount = memberAmount.sub(taxWithholding);
+    const taxWithholding = new Decimal(0); // Tax withholding removed
+    const netAmount = memberAmount;
 
     await prisma.memberDistribution.create({
       data: {

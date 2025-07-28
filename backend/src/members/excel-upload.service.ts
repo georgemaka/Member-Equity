@@ -107,7 +107,6 @@ export class ExcelUploadService {
         'state',
         'zipCode',
         'equityPercentage',
-        'taxWithholdingPercentage',
         'joinDate'
       ];
 
@@ -160,17 +159,6 @@ export class ExcelUploadService {
       }
 
       // Validate tax withholding percentage
-      if (row.taxWithholdingPercentage) {
-        const taxWithholding = Number(row.taxWithholdingPercentage);
-        if (isNaN(taxWithholding) || taxWithholding < 0 || taxWithholding > 100) {
-          rowErrors.push({
-            row: rowNumber,
-            field: 'taxWithholdingPercentage',
-            value: row.taxWithholdingPercentage,
-            message: 'Tax withholding percentage must be between 0 and 100',
-          });
-        }
-      }
 
       // Validate join date
       if (row.joinDate) {
@@ -210,7 +198,6 @@ export class ExcelUploadService {
           zipCode: String(row.zipCode).trim(),
           country: row.country ? String(row.country).trim() : 'US',
           equityPercentage: Number(row.equityPercentage),
-          taxWithholdingPercentage: Number(row.taxWithholdingPercentage),
           joinDate: String(row.joinDate),
           accountType: row.accountType ? String(row.accountType).trim() : undefined,
           routingNumber: row.routingNumber ? String(row.routingNumber).trim() : undefined,
@@ -254,7 +241,6 @@ export class ExcelUploadService {
                 country: memberData.country,
               },
               equityPercentage: new Decimal(memberData.equityPercentage),
-              taxWithholdingPercentage: new Decimal(memberData.taxWithholdingPercentage),
               joinDate: new Date(memberData.joinDate),
               bankingInfo: memberData.accountNumber ? {
                 accountType: memberData.accountType || 'checking',
@@ -316,7 +302,6 @@ export class ExcelUploadService {
         zipCode: '92867',
         country: 'US',
         equityPercentage: 15.5,
-        taxWithholdingPercentage: 25.0,
         joinDate: '2024-01-01',
         accountType: 'checking',
         routingNumber: '121000248',
@@ -336,7 +321,6 @@ export class ExcelUploadService {
         zipCode: '92614',
         country: 'US',
         equityPercentage: 8.25,
-        taxWithholdingPercentage: 20.0,
         joinDate: '2024-02-15',
         accountType: 'checking',
         routingNumber: '121000248',

@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Auth0Strategy } from './strategies/auth0.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { DevAuthGuard } from './guards/dev-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PrismaModule } from '../common/prisma/prisma.module';
 
@@ -31,8 +32,9 @@ import { PrismaModule } from '../common/prisma/prisma.module';
     JwtStrategy,
     Auth0Strategy,
     JwtAuthGuard,
+    DevAuthGuard,
     RolesGuard,
   ],
-  exports: [AuthService, JwtAuthGuard, RolesGuard],
+  exports: [AuthService, JwtAuthGuard, DevAuthGuard, RolesGuard],
 })
 export class AuthModule {}

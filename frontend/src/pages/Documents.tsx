@@ -4,6 +4,7 @@ import { DocumentCategory, DocumentStatus, AccessLevel } from '@/types/document'
 import { useToast } from '@/contexts/ToastContext'
 import { useMockAuth } from '@/contexts/MockAuthContext'
 import PermissionGuard from '@/components/PermissionGuard'
+import PageContainer from '@/components/PageContainer'
 import {
   FolderIcon,
   PlusIcon,
@@ -130,7 +131,7 @@ export default function Documents() {
   const hasActiveFilters = searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' || accessLevelFilter !== 'all'
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 px-6 py-8 mb-8">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -464,6 +465,6 @@ export default function Documents() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

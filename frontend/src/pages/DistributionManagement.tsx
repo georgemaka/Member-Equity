@@ -18,6 +18,7 @@ import { DistributionRequest, RequestStatus } from '@/types/distributionRequest'
 import CreateDistributionRequestModal from '@/components/CreateDistributionRequestModal'
 import DistributionRequestDetailModal from '@/components/DistributionRequestDetailModal'
 import PermissionGuard from '@/components/PermissionGuard'
+import PageContainer from '@/components/PageContainer'
 import { 
   CurrencyDollarIcon,
   CalendarDaysIcon,
@@ -321,7 +322,7 @@ export default function DistributionManagement() {
   const error = distributionsQuery.error || requestsQuery.error
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <PageContainer fullWidth>
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -657,6 +658,6 @@ export default function DistributionManagement() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   )
 }
